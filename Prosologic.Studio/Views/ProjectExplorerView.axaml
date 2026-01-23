@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Prosologic.Studio.Views.ProjectExplorerView">
+
+	<DockPanel>
+		<!-- Header -->
+		<Border DockPanel.Dock="Top"
+                Background="#2D2D30"
+                Padding="12,8"
+                BorderBrush="#3E3E42"
+                BorderThickness="0,0,0,1">
+			<TextBlock Text="PROJECT EXPLORER"
+                       Foreground="#CCCCCC"
+                       FontWeight="SemiBold"
+                       FontSize="12"/>
+		</Border>
+
+		<!-- Content -->
+		<Border Padding="8">
+			<TextBlock Text="Project tree here"
+                       Foreground="#808080"
+                       FontStyle="Italic"/>
+		</Border>
+	</DockPanel>
+
+</UserControl>

@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Prosologic.Studio.Views.TagEditorView">
+
+	<DockPanel>
+		<!-- Header -->
+		<Border DockPanel.Dock="Top"
+                Background="#2D2D30"
+                Padding="12,8"
+                BorderBrush="#3E3E42"
+                BorderThickness="0,0,0,1">
+			<TextBlock Text="TAG PROPERTIES"
+                       Foreground="#CCCCCC"
+                       FontWeight="SemiBold"
+                       FontSize="12"/>
+		</Border>
+
+		<!-- Content -->
+		<ScrollViewer>
+			<Border Padding="20">
+				<StackPanel Spacing="8">
+					<TextBlock Text="Select a tag to edit its properties"
+							   Foreground="#808080"
+							   FontStyle="Italic"/>
+					<TextBlock Text="Property editor here"
+							   Foreground="#606060"
+							   FontSize="11"
+							   Margin="0,8,0,0"/>
+				</StackPanel>
+			</Border>
+		</ScrollViewer>
+	</DockPanel>
+
+</UserControl>
