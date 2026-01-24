@@ -1,6 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="Prosologic.Studio.Views.TagEditorView">
+             xmlns:vm="using:Prosologic.Studio.ViewModels"
+             x:Class="Prosologic.Studio.Views.TagEditorView"
+             x:DataType="vm:TagEditorViewModel">
 
 	<DockPanel>
 		<!-- Header -->
@@ -17,18 +19,123 @@
 
 		<!-- Content -->
 		<ScrollViewer>
-			<Border Padding="20">
-				<StackPanel Spacing="8">
-					<TextBlock Text="Select a tag to edit its properties"
-							   Foreground="#808080"
-							   FontStyle="Italic"/>
-					<TextBlock Text="Property editor here"
-							   Foreground="#606060"
-							   FontSize="11"
-							   Margin="0,8,0,0"/>
-				</StackPanel>
-			</Border>
-		</ScrollViewer>
-	</DockPanel>
+			<StackPanel Spacing="12" Margin="20">
 
+				<!-- Show this when no tag selected -->
+				<TextBlock Text="Select a tag to edit its properties"
+                           Foreground="#808080"
+                           FontStyle="Italic"
+                           IsVisible="{Binding !IsTagLoaded}"/>
+
+				<!-- Show this when tag is selected -->
+				<StackPanel Spacing="12" IsVisible="{Binding IsTagLoaded}">
+
+					<!-- Name -->
+					<StackPanel Spacing="4">
+						<TextBlock Text="Name" Foreground="#CCCCCC" FontSize="12"/>
+						<TextBox Text="{Binding Name}"
+                                 Watermark="Tag name"/>
+					</StackPanel>
+
+					<!-- Data Type -->
+					<StackPanel Spacing="4">
+						<TextBlock Text="Data Type" Foreground="#CCCCCC" FontSize="12"/>
+						<ComboBox ItemsSource="{Binding AvailableDataTypes}"
+                                  SelectedItem="{Binding DataType}"
+                                  HorizontalAlignment="Stretch"/>
+					</StackPanel>
+
+					<!-- Update Strategy -->
+					<StackPanel Spacing="4">
+						<TextBlock Text="Update Strategy" Foreground="#CCCCCC" FontSize="12"/>
+						<ComboBox ItemsSource="{Binding AvailableUpdateStrategies}"
+                                  SelectedItem="{Binding UpdateStrategy}"
+                                  HorizontalAlignment="Stretch"/>
+					</StackPanel>
+
+					<!-- Update Interval -->
+					<StackPanel Spacing="4">
+						<TextBlock Text="Update Interval (ms)" Foreground="#CCCCCC" FontSize="12"/>
+						<Grid ColumnDefinitions="*,Auto">
+							<TextBox Grid.Column="0"
+                                     Text="{Binding UpdateInterval}"
+                                     Watermark="1000"/>
+							<TextBlock Grid.Column="1"
+                                       Text="ms"
+                                       Foreground="#808080"
+                                       Margin="8,0,0,0"
+                                       VerticalAlignment="Center"/>
+						</Grid>
+					</StackPanel>
+
+					<!-- Initial Value -->
+					<StackPanel Spacing="4">
+						<TextBlock Text="Initial Value" Foreground="#CCCCCC" FontSize="12"/>
+						<TextBox Text="{Binding InitialValue}"
+                                 Watermark="0"/>
+					</StackPanel>
+
+					<!-- Engineering Unit -->
+					<StackPanel Spacing="4">
+						<TextBlock Text="Engineering Unit" Foreground="#CCCCCC" FontSize="12"/>
+						<TextBox Text="{Binding EngineeringUnit}"
+                                 Watermark="e.g., °C, PSI, RPM"/>
+					</StackPanel>
+
+					<!-- Access Mode -->
+					<StackPanel Spacing="4">
+						<TextBlock Text="Access Mode" Foreground="#CCCCCC" FontSize="12"/>
+						<ComboBox ItemsSource="{Binding AvailableAccessModes}"
+                                  SelectedItem="{Binding AccessMode}"
+                                  HorizontalAlignment="Stretch"/>
+					</StackPanel>
+
+					<!-- Description -->
+					<StackPanel Spacing="4">
+						<TextBlock Text="Description" Foreground="#CCCCCC" FontSize="12"/>
+						<TextBox Text="{Binding Description}"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 Height="60"
+                                 Watermark="Optional description"/>
+					</StackPanel>
+
+					<!-- Script Hint -->
+					<Border Background="#3E3E42"
+                            Padding="12,8"
+                            CornerRadius="4"
+                            IsVisible="{Binding IsScriptRequired}">
+						<TextBlock Text="⚠️ This tag requires a script. Use the Script tab to edit."
+                                   Foreground="#FFA500"
+                                   TextWrapping="Wrap"
+                                   FontSize="11"/>
+					</Border>
+
+					<!-- Buttons -->
+					<StackPanel Orientation="Horizontal"
+                                Spacing="8"
+                                Margin="0,8,0,0">
+						<Button Content="Save Changes"
+                                Command="{Binding SaveCommand}"
+                                Background="#0E639C"
+                                Foreground="White"
+                                Padding="16,8"/>
+						<Button Content="Reset"
+                                Command="{Binding ResetCommand}"
+                                Padding="16,8"/>
+					</StackPanel>
+
+					<!-- Changes indicator -->
+					<TextBlock Text="● Unsaved changes"
+                               Foreground="#FFA500"
+                               FontSize="11"
+                               IsVisible="{Binding HasChanges}"/>
+
+				</StackPanel>
+
+			</StackPanel>
+		</ScrollViewer>
+
+	</DockPanel>
+	
 </UserControl>

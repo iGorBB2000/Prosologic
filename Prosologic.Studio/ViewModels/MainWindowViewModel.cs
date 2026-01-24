@@ -18,6 +18,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private bool _showContainersPanel = false;
 
     public ProjectExplorerViewModel ProjectExplorer { get; }
+    public TagEditorViewModel TagEditor { get; }
 
     #region Properties
     public Project? CurrentProject
@@ -65,6 +66,9 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         _serializer = new ProjectSerializer();
         ProjectExplorer = new ProjectExplorerViewModel();
+        TagEditor = new TagEditorViewModel();
+
+        ProjectExplorer.TagSelected += OnTagSelected;
 
         NewProjectCommand = ReactiveCommand.Create(NewProject);
         OpenProjectCommand = ReactiveCommand.Create(OpenProject);
@@ -82,6 +86,14 @@ public partial class MainWindowViewModel : ViewModelBase
                 this.RaisePropertyChanged(nameof(WindowTitle));
                 this.RaisePropertyChanged(nameof(IsProjectOpen));
             });
+
+        TagEditor.TagSaved += (s, e) =>
+        {
+            if (ProjectExplorer.SelectedNode != null)
+            {
+                ProjectExplorer.SelectedNode.RefreshName();
+            }
+        };
     }
 
     private void NewProject()
@@ -137,9 +149,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _currentProjectPath = string.Empty;
         StatusMessage = "New project created";
 
-        Console.WriteLine($"Loading project with {CurrentProject.TagGroups.Count} tag groups");
         ProjectExplorer.LoadProject(CurrentProject);
-        Console.WriteLine($"Tree has {ProjectExplorer.Nodes.Count} nodes");
     }
 
     private void OpenProject()
@@ -171,6 +181,21 @@ public partial class MainWindowViewModel : ViewModelBase
             StatusMessage = $"Save failed: {ex.Message}";
         }
     }
+
+    private void OnTagSelected(object? sender, Tag? tag)
+    {
+        if (tag != null)
+        {
+            TagEditor.LoadTag(tag);
+            StatusMessage = $"Editing tag: {tag.Name}";
+        }
+        else
+        {
+            TagEditor.Clear();
+            StatusMessage = "Ready";
+        }
+    }
+
     private void ToggleContainers()
     {
         ShowContainersPanel = !ShowContainersPanel;

@@ -96,7 +96,7 @@
                                 Padding="0"
                                 Margin="0">
 						<TabItem Header="Tag Properties">
-							<views:TagEditorView/>
+							<views:TagEditorView DataContext="{Binding TagEditor}"/>
 						</TabItem>
 						<TabItem Header="Protocol">
 							<Border Background="#1E1E1E" Padding="20">
