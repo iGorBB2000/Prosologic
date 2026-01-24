@@ -17,6 +17,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _currentProjectPath = string.Empty;
     private bool _showContainersPanel = false;
 
+    public ProjectExplorerViewModel ProjectExplorer { get; }
+
     #region Properties
     public Project? CurrentProject
     {
@@ -62,6 +64,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel()
     {
         _serializer = new ProjectSerializer();
+        ProjectExplorer = new ProjectExplorerViewModel();
 
         NewProjectCommand = ReactiveCommand.Create(NewProject);
         OpenProjectCommand = ReactiveCommand.Create(OpenProject);
@@ -94,10 +97,49 @@ public partial class MainWindowViewModel : ViewModelBase
                 ClientId = "prosologic-new"
             },
             TagGroups = new()
+            {
+                // ADD SOME TEST DATA:
+                new TagGroup
+                {
+                    Name = "Sensors",
+                    Tags = new()
+                    {
+                        new Tag
+                        {
+                            Name = "Temperature",
+                            DataType = Core.Enums.TagDataType.Float,
+                            InitialValue = 20.0
+                        },
+                        new Tag
+                        {
+                            Name = "Pressure",
+                            DataType = Core.Enums.TagDataType.Float,
+                            InitialValue = 101.3
+                        }
+                    }
+                },
+                new TagGroup
+                {
+                    Name = "Actuators",
+                    Tags = new()
+                    {
+                        new Tag
+                        {
+                            Name = "ConveyorSpeed",
+                            DataType = Core.Enums.TagDataType.Float,
+                            InitialValue = 0.0
+                        }
+                    }
+                }
+            }
         };
 
         _currentProjectPath = string.Empty;
         StatusMessage = "New project created";
+
+        Console.WriteLine($"Loading project with {CurrentProject.TagGroups.Count} tag groups");
+        ProjectExplorer.LoadProject(CurrentProject);
+        Console.WriteLine($"Tree has {ProjectExplorer.Nodes.Count} nodes");
     }
 
     private void OpenProject()
@@ -140,6 +182,8 @@ public partial class MainWindowViewModel : ViewModelBase
         _currentProjectPath = string.Empty;
         StatusMessage = "Project closed";
         this.RaisePropertyChanged(nameof(IsProjectOpen));
+
+        ProjectExplorer.Clear();
     }
 
     private void Exit()

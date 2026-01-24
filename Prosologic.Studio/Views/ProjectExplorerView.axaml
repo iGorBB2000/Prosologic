@@ -1,6 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="Prosologic.Studio.Views.ProjectExplorerView">
+             xmlns:vm="using:Prosologic.Studio.ViewModels"
+             x:Class="Prosologic.Studio.Views.ProjectExplorerView"			 
+             x:DataType="vm:ProjectExplorerViewModel">
 
 	<DockPanel>
 		<!-- Header -->
@@ -15,12 +17,45 @@
                        FontSize="12"/>
 		</Border>
 
-		<!-- Content -->
-		<Border Padding="8">
-			<TextBlock Text="Project tree here"
-                       Foreground="#808080"
-                       FontStyle="Italic"/>
-		</Border>
+		<!-- Tree View -->
+		<TreeView ItemsSource="{Binding Nodes}"
+                  SelectedItem="{Binding SelectedNode}"
+                  Background="Transparent"
+                  Padding="8">
+
+			<TreeView.Styles>
+				<Style Selector="TreeViewItem" x:DataType="vm:TreeNodeViewModel">
+					<Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+					<Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+				</Style>
+			</TreeView.Styles>
+
+			<TreeView.ItemTemplate>
+				<TreeDataTemplate ItemsSource="{Binding Children}">
+					<StackPanel Orientation="Horizontal" Spacing="6">
+						<!-- Icon based on node type -->
+						<TextBlock Text="{Binding NodeType, Converter={StaticResource NodeTypeToIcon}}"
+                                   FontSize="14"
+                                   VerticalAlignment="Center"/>
+						<!-- Name -->
+						<TextBlock Text="{Binding Name}"
+                                   Foreground="#CCCCCC"
+                                   VerticalAlignment="Center"/>
+					</StackPanel>
+				</TreeDataTemplate>
+			</TreeView.ItemTemplate>
+
+			<TreeView.ContextMenu>
+				<ContextMenu>
+					<MenuItem Header="Add Tag Group" IsEnabled="False"/>
+					<MenuItem Header="Add Tag" IsEnabled="False"/>
+					<Separator/>
+					<MenuItem Header="Delete" IsEnabled="False"/>
+				</ContextMenu>
+			</TreeView.ContextMenu>
+
+		</TreeView>
+
 	</DockPanel>
 
 </UserControl>

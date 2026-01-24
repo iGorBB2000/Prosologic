@@ -81,7 +81,7 @@
                         Background="#252526"
                         BorderBrush="#3E3E42"
                         BorderThickness="0,0,1,0">
-					<views:ProjectExplorerView/>
+					<views:ProjectExplorerView DataContext="{Binding ProjectExplorer}"/>
 				</Border>
 
 				<!-- Splitter -->
