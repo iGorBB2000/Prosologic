@@ -1,20 +1,130 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Prosologic.Studio.ViewModels"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+		xmlns:views="using:Prosologic.Studio.Views"
         x:Class="Prosologic.Studio.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="Prosologic.Studio">
+        Title="{Binding WindowTitle}"
+		Width="1200" Height="800"
+		Icon="/Assets/avalonia-logo.ico"
+		Background="#1E1E1E">
 
-    <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainWindowViewModel/>
-    </Design.DataContext>
+	<DockPanel>
 
-    <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+		<!-- Menu Bar -->
+		<Menu DockPanel.Dock="Top" Background="#2D2D30">
+			<MenuItem Header="_File" Foreground="White">
+				<MenuItem Header="_New Project"
+                          Command="{Binding NewProjectCommand}"
+                          InputGesture="Ctrl+N"/>
+				<MenuItem Header="_Open Project"
+                          Command="{Binding OpenProjectCommand}"
+                          InputGesture="Ctrl+O"/>
+				<MenuItem Header="_Save"
+                          Command="{Binding SaveProjectCommand}"
+                          InputGesture="Ctrl+S"/>
+				<Separator/>
+				<MenuItem Header="Save _As..."
+						  Command="{Binding SaveAsProjectCommand}"
+						  InputGesture="Ctrl+Shift+S"/>
+				<Separator/>
+				<MenuItem Header="_Close Project"
+                          Command="{Binding CloseProjectCommand}"/>
+				<Separator/>
+				<MenuItem Header="E_xit"
+                          Command="{Binding ExitCommand}"/>
+			</MenuItem>
+			<MenuItem Header="_Edit" Foreground="White">
+				<MenuItem Header="Add Tag Group" 
+						  IsEnabled="{Binding IsProjectOpen}"
+						  Command="{Binding ProjectExplorer.AddTagGroupCommand}"
+						  InputGesture="Ctrl+Shift+G"/>
+				<MenuItem Header="Add Tag" 
+						  IsEnabled="{Binding IsProjectOpen}"
+						  Command="{Binding ProjectExplorer.AddTagCommand}"
+						  InputGesture="Ctrl+Shift+T"/>
+				<Separator/>
+				<MenuItem Header="Delete" 
+						  IsEnabled="False"
+						  Command="{Binding ProjectExplorer.DeleteCommand}"
+						  InputGesture="Delete"/>
+			</MenuItem>
+			<MenuItem Header="_View" Foreground="White">
+				<MenuItem Header="{Binding ShowContainersPanelText}"
+						  Command="{Binding ToggleContainersCommand}"/>
+			</MenuItem>
+			<MenuItem Header="_Deploy" Foreground="White">
+				<MenuItem Header="Deploy to Container"
+                          IsEnabled="{Binding IsProjectOpen}"/>
+				<MenuItem Header="Stop All Containers"/>
+			</MenuItem>
+			<MenuItem Header="_Help" Foreground="White">
+				<MenuItem Header="Documentation"/>
+				<MenuItem Header="About"/>
+			</MenuItem>
+		</Menu>
+
+		<!-- Status Bar -->
+		<Border DockPanel.Dock="Bottom"
+                Background="#007ACC"
+                Padding="12,6">
+			<Grid ColumnDefinitions="Auto,*,Auto">
+				<TextBlock Grid.Column="0"
+                           Text="{Binding StatusMessage}"
+                           Foreground="White"/>
+				<TextBlock Grid.Column="2"
+                           Text="{Binding CurrentProject.ProjectName, TargetNullValue='No project open'}"
+                           Foreground="White"
+                           FontWeight="Bold"/>
+			</Grid>
+		</Border>
+
+		<!-- Main Content Area -->
+		<Grid RowDefinitions="*,Auto,Auto">
+
+			<!-- Main 2-Panel Layout -->
+			<Grid Grid.Row="0" ColumnDefinitions="280,Auto,*">
+
+				<!-- Left Panel: Project Explorer -->
+				<Border Grid.Column="0"
+						Background="#252526"
+						BorderBrush="#3E3E42"
+						BorderThickness="0,0,1,0">
+					<views:ProjectExplorerView DataContext="{Binding ProjectExplorer}"/>
+				</Border>
+
+				<!-- Splitter -->
+				<GridSplitter Grid.Column="1"
+							  Width="4"
+							  Background="#3E3E42"
+							  ResizeDirection="Columns"/>
+
+				<!-- Right Panel: Context-Sensitive Properties -->
+				<Border Grid.Column="2" Background="#1E1E1E">
+					<views:PropertiesPanelView DataContext="{Binding PropertiesPanel}"/>
+				</Border>
+
+			</Grid>
+
+			<!-- Splitter for bottom panel -->
+			<GridSplitter Grid.Row="1"
+                          Height="4"
+                          Background="#3E3E42"
+                          ResizeDirection="Rows"
+                          IsVisible="{Binding ShowContainersPanel}"/>
+
+			<!-- Bottom Panel: Containers (Collapsible) -->
+			<Border Grid.Row="2"
+                    Background="#252526"
+                    BorderBrush="#3E3E42"
+                    BorderThickness="0,1,0,0"
+                    Height="200"
+                    IsVisible="{Binding ShowContainersPanel}">
+				<views:ContainerManagerView/>
+			</Border>
+
+		</Grid>
+
+	</DockPanel>
 
 </Window>

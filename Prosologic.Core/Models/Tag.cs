@@ -7,6 +7,7 @@ namespace Prosologic.Core.Models
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public TagDataType DataType { get; set; } = TagDataType.Float;
+        public string? EngineeringUnit { get; set; }
         public object? InitialValue { get; set; }
 
         public UpdateStrategy UpdateStrategy { get; set; } = UpdateStrategy.ScriptDriven;

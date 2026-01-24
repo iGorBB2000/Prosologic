@@ -1,0 +1,74 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Prosologic.Studio.ViewModels"
+             x:Class="Prosologic.Studio.Views.TagGroupEditorView"
+			 x:DataType="vm:TagGroupEditorViewModel">
+	
+	<DockPanel>
+		<!-- Header -->
+		<Border DockPanel.Dock="Top"
+                Background="#2D2D30"
+                Padding="12,8"
+                BorderBrush="#3E3E42"
+                BorderThickness="0,0,0,1">
+			<TextBlock Text="TAG GROUP PROPERTIES"
+                       Foreground="#CCCCCC"
+                       FontWeight="SemiBold"
+                       FontSize="12"/>
+		</Border>
+
+		<!-- Content -->
+		<ScrollViewer>
+			<StackPanel Spacing="12" Margin="20">
+
+				<TextBlock Text="Select a tag group to edit its properties"
+                           Foreground="#808080"
+                           FontStyle="Italic"
+                           IsVisible="{Binding !IsGroupLoaded}"/>
+
+				<StackPanel Spacing="12" IsVisible="{Binding IsGroupLoaded}">
+
+					<!-- Name -->
+					<StackPanel Spacing="4">
+						<TextBlock Text="Name" Foreground="#CCCCCC" FontSize="12"/>
+						<TextBox Text="{Binding Name}"
+                                 Watermark="Tag group name"/>
+					</StackPanel>
+
+					<!-- Description -->
+					<StackPanel Spacing="4">
+						<TextBlock Text="Description" Foreground="#CCCCCC" FontSize="12"/>
+						<TextBox Text="{Binding Description}"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 Height="100"
+                                 Watermark="Optional description"/>
+					</StackPanel>
+
+					<!-- Buttons -->
+					<StackPanel Orientation="Horizontal"
+                                Spacing="8"
+                                Margin="0,8,0,0">
+						<Button Content="Save Changes"
+                                Command="{Binding SaveCommand}"
+                                Background="#0E639C"
+                                Foreground="White"
+                                Padding="16,8"/>
+						<Button Content="Reset"
+                                Command="{Binding ResetCommand}"
+                                Padding="16,8"/>
+					</StackPanel>
+
+					<TextBlock Text="● Unsaved changes"
+                               Foreground="#FFA500"
+                               FontSize="11"
+                               IsVisible="{Binding HasChanges}"/>
+
+				</StackPanel>
+
+			</StackPanel>
+		</ScrollViewer>
+
+	</DockPanel>
+
+</UserControl>
