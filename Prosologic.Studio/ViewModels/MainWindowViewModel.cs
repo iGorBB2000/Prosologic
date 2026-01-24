@@ -4,6 +4,7 @@ using Prosologic.Core.Serialization;
 using Prosologic.Studio.Services;
 using ReactiveUI;
 using System;
+using System.Linq;
 using System.Reactive;
 using System.Threading.Tasks;
 
@@ -96,6 +97,7 @@ public partial class MainWindowViewModel : ViewModelBase
         ProjectExplorer.DeleteRequested += OnDeleteRequested;
 
         TagEditor.TagSaved += OnTagSaved;
+        TagEditor.ValidateNameChange += OnValidateTagNameChange;
 
         NewProjectCommand = ReactiveCommand.Create(NewProject);
         OpenProjectCommand = ReactiveCommand.CreateFromTask(OpenProjectAsync);
@@ -298,68 +300,105 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (_messageBoxService == null || CurrentProject == null) return;
 
-        var name = await _messageBoxService.ShowInputAsync(
-            "Add Tag Group",
-            "Enter tag group name:",
-            "e.g., Sensors, Actuators",
-            "NewGroup"
-        );
-
-        if (string.IsNullOrWhiteSpace(name)) return;
-
-        var tagGroup = new TagGroup
+        while (true)
         {
-            Name = name,
-            Description = null
-        };
+            var name = await _messageBoxService.ShowInputAsync(
+                "Add Tag Group",
+                "Enter tag group name:",
+                "e.g., Sensors, Actuators",
+                "NewGroup"
+            );
 
-        if (e.Parent.NodeType == NodeType.Project && e.Parent.DataContext is Project project)
-        {
-            project.TagGroups.Add(tagGroup);
+            if (string.IsNullOrWhiteSpace(name)) return;
+
+            bool isUnique = false;
+
+            if (e.Parent.NodeType == NodeType.Project)
+            {
+                isUnique = CurrentProject.IsTagGroupNameUniqueAtRoot(name);
+            }
+            else if (e.Parent.DataContext is TagGroup parentGroup)
+            {
+                isUnique = CurrentProject.IsTagGroupNameUnique(parentGroup, name);
+            }
+
+            if (!isUnique)
+            {
+                await _messageBoxService.ShowWarningAsync(
+                    "Duplicate Name",
+                    $"A tag group named '{name}' already exists at this level.\n\nPlease choose a different name."
+                );
+                continue;
+            }
+
+            var tagGroup = new TagGroup
+            {
+                Name = name,
+                Description = null
+            };
+
+            if (e.Parent.NodeType == NodeType.Project && e.Parent.DataContext is Project project)
+            {
+                project.TagGroups.Add(tagGroup);
+            }
+            else if (e.Parent.NodeType == NodeType.TagGroup && e.Parent.DataContext is TagGroup parentGroup)
+            {
+                parentGroup.SubGroups.Add(tagGroup);
+            }
+
+            ProjectExplorer.AddTagGroupNode(tagGroup, e.Parent);
+
+            HasUnsavedChanges = true;
+            StatusMessage = $"Tag group '{name}' added";
+            break;
         }
-        else if (e.Parent.NodeType == NodeType.TagGroup && e.Parent.DataContext is TagGroup parentGroup)
-        {
-            parentGroup.SubGroups.Add(tagGroup);
-        }
-
-        ProjectExplorer.AddTagGroupNode(tagGroup, e.Parent);
-
-        HasUnsavedChanges = true;
-        StatusMessage = $"Tag group '{name}' added";
     }
 
     private async void OnAddTagRequested(object? sender, (string Name, TreeNodeViewModel Parent) e)
     {
         if (_messageBoxService == null || CurrentProject == null) return;
 
-        var name = await _messageBoxService.ShowInputAsync(
-            "Add Tag",
-            "Enter tag name:",
-            "e.g., Temperature, Pressure",
-            "NewTag"
-        );
+        if (e.Parent.DataContext is not TagGroup parentGroup)
+            return;
 
-        if (string.IsNullOrWhiteSpace(name)) return;
-
-        var tag = new Tag
+        while (true)
         {
-            Name = name,
-            DataType = TagDataType.Float,
-            UpdateStrategy = UpdateStrategy.Static,
-            UpdateInterval = 1000,
-            InitialValue = 0.0,
-            AccessMode = TagAccessMode.ReadWrite
-        };
+            var name = await _messageBoxService.ShowInputAsync(
+                "Add Tag",
+                "Enter tag name:",
+                "e.g., Temperature, Pressure",
+                "NewTag"
+            );
 
-        if (e.Parent.DataContext is TagGroup parentGroup)
-        {
+            if (string.IsNullOrWhiteSpace(name)) return;
+
+            if (!CurrentProject.IsTagNameUniqueInGroup(parentGroup, name))
+            {
+                await _messageBoxService.ShowWarningAsync(
+                    "Duplicate Name",
+                    $"A tag named '{name}' already exists in this tag group.\n\nPlease choose a different name."
+                );
+                continue; // Ask again
+            }
+
+            var tag = new Tag
+            {
+                Name = name,
+                DataType = TagDataType.Float,
+                UpdateStrategy = UpdateStrategy.Static,
+                UpdateInterval = 1000,
+                InitialValue = 0.0,
+                AccessMode = TagAccessMode.ReadWrite
+            };
+
             parentGroup.Tags.Add(tag);
+
+            ProjectExplorer.AddTagNode(tag, e.Parent);
+
+            HasUnsavedChanges = true;
+            StatusMessage = $"Tag '{name}' added";
+            break;
         }
-
-        ProjectExplorer.AddTagNode(tag, e.Parent);
-
-        HasUnsavedChanges = true;
-        StatusMessage = $"Tag '{name}' added";
     }
 
     private async void OnDeleteRequested(object? sender, TreeNodeViewModel node)
@@ -477,5 +516,63 @@ public partial class MainWindowViewModel : ViewModelBase
             ProjectExplorer.SelectedNode.RefreshName();
         }
         HasUnsavedChanges = true;
+    }
+
+    private async void OnValidateTagNameChange(object? sender, (Tag Tag, string OldName, string NewName, Action<bool> Callback) e)
+    {
+        if (_messageBoxService == null || CurrentProject == null)
+        {
+            e.Callback(true);
+            return;
+        }
+
+        TagGroup? parentGroup = FindParentGroup(CurrentProject, e.Tag);
+
+        if (parentGroup == null)
+        {
+            e.Callback(true);
+            return;
+        }
+
+        var isDuplicate = parentGroup.Tags
+            .Where(t => t != e.Tag)
+            .Any(t => t.Name.Equals(e.NewName, StringComparison.OrdinalIgnoreCase));
+
+        if (isDuplicate)
+        {
+            await _messageBoxService.ShowWarningAsync(
+                "Duplicate Name",
+                $"A tag named '{e.NewName}' already exists in this tag group.\n\nPlease choose a different name."
+            );
+            e.Callback(false);
+        }
+        else
+        {
+            e.Callback(true);
+        }
+    }
+
+    private TagGroup? FindParentGroup(Project project, Tag tag)
+    {
+        foreach (var group in project.TagGroups)
+        {
+            var parent = FindParentGroupRecursive(group, tag);
+            if (parent != null) return parent;
+        }
+        return null;
+    }
+
+    private TagGroup? FindParentGroupRecursive(TagGroup group, Tag tag)
+    {
+        if (group.Tags.Contains(tag))
+            return group;
+
+        foreach (var subGroup in group.SubGroups)
+        {
+            var parent = FindParentGroupRecursive(subGroup, tag);
+            if (parent != null) return parent;
+        }
+
+        return null;
     }
 }

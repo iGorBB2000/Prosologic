@@ -14,6 +14,7 @@ namespace Prosologic.Studio.ViewModels
         private bool _hasChanges;
 
         public event EventHandler? TagSaved;
+        public event EventHandler<(Tag Tag, string OldName, string NewName, Action<bool> Callback)>? ValidateNameChange;
 
         #region Properties
         private string _name = string.Empty;
@@ -187,7 +188,23 @@ namespace Prosologic.Studio.ViewModels
 
         private void Save()
         {
-            if (_currentTag == null) return;
+            var oldName = _currentTag.Name;
+
+            if (oldName != Name)
+            {
+                bool isValid = true;
+
+                if (ValidateNameChange != null)
+                {
+                    ValidateNameChange.Invoke(this, (_currentTag, oldName, Name, (valid) => isValid = valid));
+                }
+
+                if (!isValid)
+                {
+                    Name = oldName;
+                    return;
+                }
+            }
 
             _currentTag.Name = Name;
             _currentTag.DataType = DataType;
@@ -199,7 +216,6 @@ namespace Prosologic.Studio.ViewModels
             _currentTag.Description = string.IsNullOrWhiteSpace(Description) ? null : Description;
 
             HasChanges = false;
-
             TagSaved?.Invoke(this, EventArgs.Empty);
         }
 

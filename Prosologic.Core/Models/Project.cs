@@ -56,6 +56,21 @@ namespace Prosologic.Core.Models
             return Protocol.ProtocolType;
         }
 
+        public bool IsTagNameUniqueInGroup(TagGroup parentGroup, string tagName)
+        {
+            return !parentGroup.Tags.Any(t => t.Name.Equals(tagName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public bool IsTagGroupNameUnique(TagGroup parentGroup, string groupName)
+        {
+            return !parentGroup.SubGroups.Any(g => g.Name.Equals(groupName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public bool IsTagGroupNameUniqueAtRoot(string groupName)
+        {
+            return !TagGroups.Any(g => g.Name.Equals(groupName, StringComparison.OrdinalIgnoreCase));
+        }
+
         public ValidationResult Validate()
         {
             var errors = new List<string>();
