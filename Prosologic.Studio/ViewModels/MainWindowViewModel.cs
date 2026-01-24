@@ -1,4 +1,5 @@
-﻿using Prosologic.Core.Models;
+﻿using Prosologic.Core.Enums;
+using Prosologic.Core.Models;
 using Prosologic.Core.Serialization;
 using Prosologic.Studio.Services;
 using ReactiveUI;
@@ -90,6 +91,10 @@ public partial class MainWindowViewModel : ViewModelBase
         TagEditor = new TagEditorViewModel();
 
         ProjectExplorer.TagSelected += OnTagSelected;
+        ProjectExplorer.AddTagGroupRequested += OnAddTagGroupRequested;
+        ProjectExplorer.AddTagRequested += OnAddTagRequested;
+        ProjectExplorer.DeleteRequested += OnDeleteRequested;
+
         TagEditor.TagSaved += OnTagSaved;
 
         NewProjectCommand = ReactiveCommand.Create(NewProject);
@@ -287,6 +292,163 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         // TODO: Check for unsaved changes
         Environment.Exit(0);
+    }
+
+    private async void OnAddTagGroupRequested(object? sender, (string Name, TreeNodeViewModel Parent) e)
+    {
+        if (_messageBoxService == null || CurrentProject == null) return;
+
+        var name = await _messageBoxService.ShowInputAsync(
+            "Add Tag Group",
+            "Enter tag group name:",
+            "e.g., Sensors, Actuators",
+            "NewGroup"
+        );
+
+        if (string.IsNullOrWhiteSpace(name)) return;
+
+        var tagGroup = new TagGroup
+        {
+            Name = name,
+            Description = null
+        };
+
+        if (e.Parent.NodeType == NodeType.Project && e.Parent.DataContext is Project project)
+        {
+            project.TagGroups.Add(tagGroup);
+        }
+        else if (e.Parent.NodeType == NodeType.TagGroup && e.Parent.DataContext is TagGroup parentGroup)
+        {
+            parentGroup.SubGroups.Add(tagGroup);
+        }
+
+        ProjectExplorer.AddTagGroupNode(tagGroup, e.Parent);
+
+        HasUnsavedChanges = true;
+        StatusMessage = $"Tag group '{name}' added";
+    }
+
+    private async void OnAddTagRequested(object? sender, (string Name, TreeNodeViewModel Parent) e)
+    {
+        if (_messageBoxService == null || CurrentProject == null) return;
+
+        var name = await _messageBoxService.ShowInputAsync(
+            "Add Tag",
+            "Enter tag name:",
+            "e.g., Temperature, Pressure",
+            "NewTag"
+        );
+
+        if (string.IsNullOrWhiteSpace(name)) return;
+
+        var tag = new Tag
+        {
+            Name = name,
+            DataType = TagDataType.Float,
+            UpdateStrategy = UpdateStrategy.Static,
+            UpdateInterval = 1000,
+            InitialValue = 0.0,
+            AccessMode = TagAccessMode.ReadWrite
+        };
+
+        if (e.Parent.DataContext is TagGroup parentGroup)
+        {
+            parentGroup.Tags.Add(tag);
+        }
+
+        ProjectExplorer.AddTagNode(tag, e.Parent);
+
+        HasUnsavedChanges = true;
+        StatusMessage = $"Tag '{name}' added";
+    }
+
+    private async void OnDeleteRequested(object? sender, TreeNodeViewModel node)
+    {
+        if (_messageBoxService == null) return;
+
+        var itemType = node.NodeType == NodeType.Tag ? "tag" : "tag group";
+        var confirmed = await _messageBoxService.ConfirmAsync(
+            "Confirm Delete",
+            $"Are you sure you want to delete {itemType} '{node.Name}'?"
+        );
+
+        if (!confirmed) return;
+
+        if (node.NodeType == NodeType.Tag && node.DataContext is Tag tag)
+        {
+            RemoveTagFromProject(CurrentProject, tag);
+        }
+        else if (node.NodeType == NodeType.TagGroup && node.DataContext is TagGroup group)
+        {
+            RemoveTagGroupFromProject(CurrentProject, group);
+        }
+
+        ProjectExplorer.RemoveNode(node);
+
+        HasUnsavedChanges = true;
+        StatusMessage = $"Deleted {itemType} '{node.Name}'";
+    }
+
+    private void RemoveTagFromProject(Project? project, Tag tag)
+    {
+        if (project == null) return;
+
+        foreach (var group in project.TagGroups)
+        {
+            if (RemoveTagFromGroup(group, tag))
+                return;
+        }
+    }
+
+    private bool RemoveTagFromGroup(TagGroup group, Tag tag)
+    {
+        if (group.Tags.Contains(tag))
+        {
+            group.Tags.Remove(tag);
+            return true;
+        }
+
+        foreach (var subGroup in group.SubGroups)
+        {
+            if (RemoveTagFromGroup(subGroup, tag))
+                return true;
+        }
+
+        return false;
+    }
+
+    private void RemoveTagGroupFromProject(Project? project, TagGroup groupToRemove)
+    {
+        if (project == null) return;
+
+        if (project.TagGroups.Contains(groupToRemove))
+        {
+            project.TagGroups.Remove(groupToRemove);
+            return;
+        }
+
+        foreach (var group in project.TagGroups)
+        {
+            if (RemoveTagGroupFromGroup(group, groupToRemove))
+                return;
+        }
+    }
+
+    private bool RemoveTagGroupFromGroup(TagGroup parent, TagGroup groupToRemove)
+    {
+        if (parent.SubGroups.Contains(groupToRemove))
+        {
+            parent.SubGroups.Remove(groupToRemove);
+            return true;
+        }
+
+        foreach (var subGroup in parent.SubGroups)
+        {
+            if (RemoveTagGroupFromGroup(subGroup, groupToRemove))
+                return true;
+        }
+
+        return false;
     }
 
     private void ToggleContainers()

@@ -35,10 +35,19 @@
                           Command="{Binding ExitCommand}"/>
 			</MenuItem>
 			<MenuItem Header="_Edit" Foreground="White">
-				<MenuItem Header="Add Tag Group" IsEnabled="{Binding IsProjectOpen}"/>
-				<MenuItem Header="Add Tag" IsEnabled="{Binding IsProjectOpen}"/>
+				<MenuItem Header="Add Tag Group" 
+						  IsEnabled="{Binding IsProjectOpen}"
+						  Command="{Binding ProjectExplorer.AddTagGroupCommand}"
+						  InputGesture="Ctrl+Shift+G"/>
+				<MenuItem Header="Add Tag" 
+						  IsEnabled="{Binding IsProjectOpen}"
+						  Command="{Binding ProjectExplorer.AddTagCommand}"
+						  InputGesture="Ctrl+Shift+T"/>
 				<Separator/>
-				<MenuItem Header="Delete" IsEnabled="False"/>
+				<MenuItem Header="Delete" 
+						  IsEnabled="False"
+						  Command="{Binding ProjectExplorer.DeleteCommand}"
+						  InputGesture="Delete"/>
 			</MenuItem>
 			<MenuItem Header="_View" Foreground="White">
 				<MenuItem Header="{Binding ShowContainersPanelText}"

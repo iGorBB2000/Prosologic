@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:dialogs="using:Prosologic.Studio.Views.Dialogs"
         x:Class="Prosologic.Studio.Views.Dialogs.InputDialog"
         x:DataType="dialogs:InputDialog"
         Title="{Binding DialogTitle}"

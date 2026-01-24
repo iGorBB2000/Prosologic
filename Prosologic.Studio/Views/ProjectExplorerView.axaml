@@ -47,10 +47,16 @@
 
 			<TreeView.ContextMenu>
 				<ContextMenu>
-					<MenuItem Header="Add Tag Group" IsEnabled="False"/>
-					<MenuItem Header="Add Tag" IsEnabled="False"/>
+					<MenuItem Header="Add Tag Group"
+							  Command="{Binding AddTagGroupCommand}"
+							  InputGesture="Ctrl+Shift+G"/>
+					<MenuItem Header="Add Tag"
+							  Command="{Binding AddTagCommand}"
+							  InputGesture="Ctrl+Shift+T"/>
 					<Separator/>
-					<MenuItem Header="Delete" IsEnabled="False"/>
+					<MenuItem Header="Delete"
+							  Command="{Binding DeleteCommand}"
+							  InputGesture="Delete"/>
 				</ContextMenu>
 			</TreeView.ContextMenu>
 
