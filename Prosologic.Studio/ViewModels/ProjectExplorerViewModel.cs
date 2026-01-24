@@ -3,7 +3,6 @@ using Prosologic.Core.Models;
 using ReactiveUI;
 using System;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 
 namespace Prosologic.Studio.ViewModels
 {

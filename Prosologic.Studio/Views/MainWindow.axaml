@@ -9,10 +9,6 @@
 		Icon="/Assets/avalonia-logo.ico"
 		Background="#1E1E1E">
 
-    <Design.DataContext>
-        <vm:MainWindowViewModel/>
-    </Design.DataContext>
-
 	<DockPanel>
 
 		<!-- Menu Bar -->
@@ -27,6 +23,10 @@
 				<MenuItem Header="_Save"
                           Command="{Binding SaveProjectCommand}"
                           InputGesture="Ctrl+S"/>
+				<Separator/>
+				<MenuItem Header="Save _As..."
+						  Command="{Binding SaveAsProjectCommand}"
+						  InputGesture="Ctrl+Shift+S"/>
 				<Separator/>
 				<MenuItem Header="_Close Project"
                           Command="{Binding CloseProjectCommand}"/>
