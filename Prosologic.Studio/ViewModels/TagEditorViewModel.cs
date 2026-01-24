@@ -25,6 +25,7 @@ namespace Prosologic.Studio.ViewModels
         private string _engineeringUnit = string.Empty;
         private TagAccessMode _accessMode;
         private string _description = string.Empty;
+        private string _scriptContent = string.Empty;
 
         public string Name
         {
@@ -113,6 +114,16 @@ namespace Prosologic.Studio.ViewModels
             private set => this.RaiseAndSetIfChanged(ref _hasChanges, value);
         }
 
+        public string ScriptContent
+        {
+            get => _scriptContent;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _scriptContent, value);
+                HasChanges = true;
+            }
+        }
+
         public bool IsTagLoaded => _currentTag != null;
 
         public bool IsScriptRequired => UpdateStrategy == UpdateStrategy.ScriptDriven;
@@ -156,6 +167,10 @@ namespace Prosologic.Studio.ViewModels
             _accessMode = tag.AccessMode;
             _description = tag.Description ?? string.Empty;
 
+            _scriptContent = tag.Metadata.TryGetValue("ScriptContent", out var script)
+                ? script
+                : GetDefaultScript(tag.DataType);
+
             this.RaisePropertyChanged(nameof(Name));
             this.RaisePropertyChanged(nameof(DataType));
             this.RaisePropertyChanged(nameof(UpdateStrategy));
@@ -164,6 +179,7 @@ namespace Prosologic.Studio.ViewModels
             this.RaisePropertyChanged(nameof(EngineeringUnit));
             this.RaisePropertyChanged(nameof(AccessMode));
             this.RaisePropertyChanged(nameof(Description));
+            this.RaisePropertyChanged(nameof(ScriptContent));
             this.RaisePropertyChanged(nameof(IsTagLoaded));
             this.RaisePropertyChanged(nameof(IsScriptRequired));
 
@@ -181,6 +197,7 @@ namespace Prosologic.Studio.ViewModels
             _engineeringUnit = string.Empty;
             _accessMode = TagAccessMode.ReadWrite;
             _description = string.Empty;
+            _scriptContent = string.Empty;
 
             this.RaisePropertyChanged(nameof(IsTagLoaded));
             HasChanges = false;
@@ -214,6 +231,15 @@ namespace Prosologic.Studio.ViewModels
             _currentTag.EngineeringUnit = string.IsNullOrWhiteSpace(EngineeringUnit) ? null : EngineeringUnit;
             _currentTag.AccessMode = AccessMode;
             _currentTag.Description = string.IsNullOrWhiteSpace(Description) ? null : Description;
+
+            if (!string.IsNullOrWhiteSpace(ScriptContent))
+            {
+                _currentTag.Metadata["ScriptContent"] = ScriptContent;
+            }
+            else
+            {
+                _currentTag.Metadata.Remove("ScriptContent");
+            }
 
             HasChanges = false;
             TagSaved?.Invoke(this, EventArgs.Empty);
@@ -250,6 +276,57 @@ namespace Prosologic.Studio.ViewModels
             {
                 return InitialValue;
             }
+        }
+
+        private string GetDefaultScript(TagDataType dataType)
+        {
+            return dataType switch
+            {
+                TagDataType.Float or TagDataType.Double =>
+    @"// Update tag value using C# script
+// 'value' is the current tag value
+// Return the new value
+
+// Example: Sine wave
+value = 50.0 + 25.0 * Math.Sin(DateTime.Now.TimeOfDay.TotalSeconds * 0.5);
+return value;",
+
+                TagDataType.Int32 or TagDataType.Int16 =>
+    @"// Update tag value using C# script
+// 'value' is the current tag value
+// Return the new value
+
+// Example: Counter
+value = ((int)value + 1) % 100;
+return value;",
+
+                TagDataType.Boolean =>
+    @"// Update tag value using C# script
+// 'value' is the current tag value
+// Return the new value
+
+// Example: Toggle every 5 seconds
+var seconds = DateTime.Now.Second;
+value = (seconds % 10) < 5;
+return value;",
+
+                TagDataType.String =>
+    @"// Update tag value using C# script
+// 'value' is the current tag value
+// Return the new value
+
+// Example: Timestamp
+value = DateTime.Now.ToString(""HH:mm:ss"");
+return value;",
+
+                _ =>
+    @"// Update tag value using C# script
+// 'value' is the current tag value
+// Return the new value
+
+value = /* your logic here */;
+return value;"
+            };
         }
     }
 }
