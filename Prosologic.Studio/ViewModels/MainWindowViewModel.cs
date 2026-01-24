@@ -4,6 +4,7 @@ using Prosologic.Core.Serialization;
 using Prosologic.Studio.Services;
 using ReactiveUI;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reactive;
 using System.Threading.Tasks;
@@ -23,7 +24,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private bool _hasUnsavedChanges = false;
 
     public ProjectExplorerViewModel ProjectExplorer { get; }
-    public TagEditorViewModel TagEditor { get; }
+    public PropertiesPanelViewModel PropertiesPanel { get; }
 
     #region Properties
     public Project? CurrentProject
@@ -89,15 +90,16 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         _serializer = new ProjectSerializer();
         ProjectExplorer = new ProjectExplorerViewModel();
-        TagEditor = new TagEditorViewModel();
+        PropertiesPanel = new PropertiesPanelViewModel();
 
-        ProjectExplorer.TagSelected += OnTagSelected;
+        ProjectExplorer.SelectionChanged += OnSelectionChanged;
         ProjectExplorer.AddTagGroupRequested += OnAddTagGroupRequested;
         ProjectExplorer.AddTagRequested += OnAddTagRequested;
         ProjectExplorer.DeleteRequested += OnDeleteRequested;
 
-        TagEditor.TagSaved += OnTagSaved;
-        TagEditor.ValidateNameChange += OnValidateTagNameChange;
+        PropertiesPanel.TagGroupEditor.GroupNameChanged += OnTagGroupNameChanged;
+        PropertiesPanel.TagGroupEditor.GroupSaved += OnTagGroupSaved;
+        PropertiesPanel.ProjectProperties.ProjectSaved += OnProjectPropertiesSaved;
 
         NewProjectCommand = ReactiveCommand.Create(NewProject);
         OpenProjectCommand = ReactiveCommand.CreateFromTask(OpenProjectAsync);
@@ -117,7 +119,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 this.RaisePropertyChanged(nameof(IsProjectOpen));
             });
 
-        TagEditor.TagSaved += (s, e) =>
+        PropertiesPanel.TagEditor.TagSaved += (s, e) =>
         {
             if (ProjectExplorer.SelectedNode != null)
             {
@@ -187,6 +189,7 @@ public partial class MainWindowViewModel : ViewModelBase
         StatusMessage = "New project created";
 
         ProjectExplorer.LoadProject(CurrentProject);
+        PropertiesPanel.ShowProject(CurrentProject);
     }
 
     private async Task OpenProjectAsync()
@@ -206,7 +209,6 @@ public partial class MainWindowViewModel : ViewModelBase
             HasUnsavedChanges = false;
 
             ProjectExplorer.LoadProject(project);
-            TagEditor.Clear();
 
             StatusMessage = $"Project loaded: {project.ProjectName}";
         }
@@ -287,7 +289,7 @@ public partial class MainWindowViewModel : ViewModelBase
         StatusMessage = "Project closed";
 
         ProjectExplorer.Clear();
-        TagEditor.Clear();
+        PropertiesPanel.Clear();
     }
 
     private void Exit()
@@ -428,6 +430,33 @@ public partial class MainWindowViewModel : ViewModelBase
         StatusMessage = $"Deleted {itemType} '{node.Name}'";
     }
 
+    private void OnTagGroupNameChanged(object? sender, (TagGroup Group, string OldName, string NewName) e)
+    {
+        var node = ProjectExplorer.Nodes.SelectMany(n => GetAllNodes(n))
+            .FirstOrDefault(n => n.DataContext == e.Group);
+
+        if (node != null)
+        {
+            node.Name = e.NewName;
+        }
+
+        HasUnsavedChanges = true;
+    }
+
+    private void OnTagGroupSaved(object? sender, EventArgs e)
+    {
+        HasUnsavedChanges = true;
+    }
+
+    private IEnumerable<TreeNodeViewModel> GetAllNodes(TreeNodeViewModel node)
+    {
+        yield return node;
+        foreach (var child in node.Children.SelectMany(GetAllNodes))
+        {
+            yield return child;
+        }
+    }
+
     private void RemoveTagFromProject(Project? project, Tag tag)
     {
         if (project == null) return;
@@ -495,17 +524,29 @@ public partial class MainWindowViewModel : ViewModelBase
         ShowContainersPanel = !ShowContainersPanel;
     }
 
-    private void OnTagSelected(object? sender, Tag? tag)
+    private void OnSelectionChanged(object? sender, (NodeType Type, object? Data) e)
     {
-        if (tag != null)
+        switch (e.Type)
         {
-            TagEditor.LoadTag(tag);
-            StatusMessage = $"Editing tag: {tag.Name}";
-        }
-        else
-        {
-            TagEditor.Clear();
-            StatusMessage = "Ready";
+            case NodeType.Project when e.Data is Project project:
+                PropertiesPanel.ShowProject(project);
+                StatusMessage = $"Project: {project.ProjectName}";
+                break;
+
+            case NodeType.TagGroup when e.Data is TagGroup group:
+                PropertiesPanel.ShowTagGroup(group);
+                StatusMessage = $"Tag Group: {group.Name}";
+                break;
+
+            case NodeType.Tag when e.Data is Tag tag:
+                PropertiesPanel.ShowTag(tag);
+                StatusMessage = $"Tag: {tag.Name}";
+                break;
+
+            default:
+                PropertiesPanel.Clear();
+                StatusMessage = "Ready";
+                break;
         }
     }
 
@@ -550,6 +591,18 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             e.Callback(true);
         }
+    }
+
+    private void OnProjectPropertiesSaved(object? sender, EventArgs e)
+    {
+        HasUnsavedChanges = true;
+
+        if (CurrentProject != null && ProjectExplorer.Nodes.Count > 0)
+        {
+            ProjectExplorer.Nodes[0].Name = CurrentProject.ProjectName;
+        }
+
+        StatusMessage = "Project properties saved";
     }
 
     private TagGroup? FindParentGroup(Project project, Tag tag)

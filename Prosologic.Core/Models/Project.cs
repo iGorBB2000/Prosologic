@@ -8,6 +8,7 @@ namespace Prosologic.Core.Models
     {
         public string ProjectName { get; set; } = string.Empty;
         public string Version { get; set; } = "1.0.0";
+        public string? Author { get; set; }
         public DateTime Modified { get; set; }
         public string? Description { get; set; }
 

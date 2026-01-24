@@ -35,6 +35,7 @@ namespace Prosologic.Studio.ViewModels
         public event EventHandler<(string Name, TreeNodeViewModel Parent)>? AddTagGroupRequested;
         public event EventHandler<(string Name, TreeNodeViewModel Parent)>? AddTagRequested;
         public event EventHandler<TreeNodeViewModel>? DeleteRequested;
+        public event EventHandler<(NodeType Type, object? Data)>? SelectionChanged;
         #endregion
 
         public ProjectExplorerViewModel()
@@ -183,14 +184,13 @@ namespace Prosologic.Studio.ViewModels
 
         private void OnNodeSelected()
         {
-            if (SelectedNode?.NodeType == NodeType.Tag &&
-                SelectedNode.DataContext is Tag tag)
+            if (SelectedNode != null)
             {
-                TagSelected?.Invoke(this, tag);
+                SelectionChanged?.Invoke(this, (SelectedNode.NodeType, SelectedNode.DataContext));
             }
             else
             {
-                TagSelected?.Invoke(this, null);
+                SelectionChanged?.Invoke(this, (NodeType.Project, null));
             }
         }
 
