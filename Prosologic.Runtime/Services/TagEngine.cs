@@ -6,18 +6,20 @@ namespace Prosologic.Runtime.Services;
 public class TagEngine : ITagEngine
 {
     private readonly ILogger<TagEngine> _logger;
+    private readonly ScriptExecutor _scriptExecutor;
     private Project? _project;
     private readonly List<TagContext> _tagContexts = new();
     private bool _isRunning;
     
     public event EventHandler<TagValueChangedEventArgs>? TagValueChanged;
     
-    public TagEngine(ILogger<TagEngine> logger)
+    public TagEngine(ILogger<TagEngine> logger, ScriptExecutor scriptExecutor)
     {
         _logger = logger;
+        _scriptExecutor = scriptExecutor;
     }
     
-    public Task InitializeAsync(Project project)
+    public async Task InitializeAsync(Project project)
     {
         _project = project;
         _logger.LogInformation("Tag engine initialized");
@@ -34,11 +36,22 @@ public class TagEngine : ITagEngine
             
             _tagContexts.Add(context);
             
+            if (tag.UpdateStrategy == UpdateStrategy.ScriptDriven)
+            {
+                if (tag.Metadata.TryGetValue("ScriptContent", out var scriptContent))
+                {
+                    _logger.LogInformation("Found script for {Path}, compiling...", path);
+                    await _scriptExecutor.CompileScriptAsync(path, scriptContent);
+                }
+                else
+                {
+                    _logger.LogWarning("Tag {Path} is script-driven but has no script content", path);
+                }
+            }
+            
             _logger.LogInformation("Tag: {Path} ({DataType}, {Strategy}, {Interval}ms)", 
                 path, tag.DataType, tag.UpdateStrategy, tag.UpdateInterval);
         }
-        
-        return Task.CompletedTask;
     }
     
     public Task StartAsync()
@@ -93,7 +106,7 @@ public class TagEngine : ITagEngine
             context.Path, context.Tag.UpdateInterval);
     }
     
-    private void UpdateTag(TagContext context)
+    private async void UpdateTag(TagContext context)
     {
         if (!_isRunning) return;
         
@@ -103,7 +116,7 @@ public class TagEngine : ITagEngine
             {
                 UpdateStrategy.Static => context.Tag.InitialValue,
                 UpdateStrategy.Random => context.GenerateRandomValue(),
-                UpdateStrategy.ScriptDriven => ExecuteScript(context), // Phase 3
+                UpdateStrategy.ScriptDriven => await ExecuteScriptAsync(context),
                 _ => context.CurrentValue
             };
             
@@ -129,11 +142,9 @@ public class TagEngine : ITagEngine
         }
     }
     
-    private object? ExecuteScript(TagContext context)
+    private async Task<object?> ExecuteScriptAsync(TagContext context)
     {
-        // Placeholder
-        _logger.LogWarning("Script execution not implemented yet for {Path}", context.Path);
-        return context.CurrentValue;
+        return await _scriptExecutor.ExecuteScriptAsync(context.Path, context.CurrentValue);
     }
     
     private string FormatValue(object? value)
