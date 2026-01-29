@@ -1,3 +1,5 @@
+using Prosologic.Core.Models;
+
 namespace Prosologic.Runtime.Services;
 
 public class RuntimeService : BackgroundService
@@ -5,20 +7,21 @@ public class RuntimeService : BackgroundService
     private readonly ILogger<RuntimeService> _logger;
     private readonly IProjectLoader _projectLoader;
     private readonly ITagEngine _tagEngine;
+    private readonly IMqttPublisher _mqttPublisher;
     private readonly RuntimeOptions _options;
     
     public RuntimeService(
         ILogger<RuntimeService> logger,
         IProjectLoader projectLoader,
         ITagEngine tagEngine,
+        IMqttPublisher mqttPublisher,
         RuntimeOptions options)
     {
         _logger = logger;
         _projectLoader = projectLoader;
         _tagEngine = tagEngine;
+        _mqttPublisher = mqttPublisher;
         _options = options;
-        
-        _logger.LogInformation("RuntimeOptions.ProjectPath = '{ProjectPath}'", _options.ProjectPath);
     }
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -27,14 +30,10 @@ public class RuntimeService : BackgroundService
         {
             _logger.LogInformation("Runtime service starting...");
             
-            if (string.IsNullOrEmpty(_options.ProjectPath))
-            {
-                _logger.LogError("Project path is null or empty!");
-                throw new InvalidOperationException("Project path not configured");
-            }
-            
             var project = await _projectLoader.LoadProjectAsync(_options.ProjectPath);
             await _tagEngine.InitializeAsync(project);
+            _tagEngine.TagValueChanged += OnTagValueChanged;
+            await _mqttPublisher.StartAsync(project);
             await _tagEngine.StartAsync();
             
             _logger.LogInformation("Runtime service started successfully");
@@ -53,8 +52,15 @@ public class RuntimeService : BackgroundService
         }
         finally
         {
+            _tagEngine.TagValueChanged -= OnTagValueChanged;
             await _tagEngine.StopAsync();
+            await _mqttPublisher.StopAsync();
             _logger.LogInformation("Runtime service stopped");
         }
+    }
+    
+    private async void OnTagValueChanged(object? sender, TagValueChangedEventArgs e)
+    {
+        await _mqttPublisher.PublishTagValueAsync(e.TagPath, e.Value, e.Timestamp);
     }
 }

@@ -28,7 +28,7 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddSingleton(new RuntimeOptions { ProjectPath = projectPath });
 builder.Services.AddSingleton<ScriptExecutor>();
-
+builder.Services.AddSingleton<IMqttPublisher, MqttPublisher>();
 builder.Services.AddHostedService<RuntimeService>();
 builder.Services.AddSingleton<IProjectLoader, ProjectLoader>();
 builder.Services.AddSingleton<ITagEngine, TagEngine>();
