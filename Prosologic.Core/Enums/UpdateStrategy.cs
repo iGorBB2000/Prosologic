@@ -5,6 +5,7 @@
         ScriptDriven,
         MessageDriven,
         TimeBased,
+        Random,
         Static
     }
 }
