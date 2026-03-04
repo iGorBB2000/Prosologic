@@ -1,0 +1,172 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:vm="using:Prosologic.Studio.ViewModels"
+             x:Class="Prosologic.Studio.Views.ProjectPropertiesView"
+             x:DataType="vm:ProjectPropertiesViewModel">
+
+	<DockPanel>
+		<!-- Header -->
+		<Border DockPanel.Dock="Top"
+                Background="#2D2D30"
+                Padding="12,8"
+                BorderBrush="#3E3E42"
+                BorderThickness="0,0,0,1">
+			<TextBlock Text="PROJECT PROPERTIES"
+                       Foreground="#CCCCCC"
+                       FontWeight="SemiBold"
+                       FontSize="12"/>
+		</Border>
+
+		<!-- Content -->
+		<ScrollViewer>
+			<StackPanel Spacing="12" Margin="20">
+
+				<!-- Show this when no project -->
+				<TextBlock Text="No project open"
+                           Foreground="#808080"
+                           FontStyle="Italic"
+                           IsVisible="{Binding !IsProjectLoaded}"/>
+
+				<!-- Show this when project is loaded -->
+				<StackPanel Spacing="16" IsVisible="{Binding IsProjectLoaded}">
+
+					<!-- General Section -->
+					<TextBlock Text="General"
+                               Foreground="#FFFFFF"
+                               FontWeight="SemiBold"
+                               FontSize="14"/>
+
+					<StackPanel Spacing="8">
+						<TextBlock Text="Project Name" Foreground="#CCCCCC" FontSize="12"/>
+						<TextBox Text="{Binding ProjectName}"
+                                 Watermark="Project name"/>
+					</StackPanel>
+
+					<StackPanel Spacing="8">
+						<TextBlock Text="Version" Foreground="#CCCCCC" FontSize="12"/>
+						<TextBox Text="{Binding Version}"
+                                 Watermark="1.0.0"/>
+					</StackPanel>
+
+					<StackPanel Spacing="8">
+						<TextBlock Text="Author" Foreground="#CCCCCC" FontSize="12"/>
+						<TextBox Text="{Binding Author}"
+                                 Watermark="Your name"/>
+					</StackPanel>
+
+					<StackPanel Spacing="8">
+						<TextBlock Text="Description" Foreground="#CCCCCC" FontSize="12"/>
+						<TextBox Text="{Binding Description}"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 Height="60"
+                                 Watermark="Project description"/>
+					</StackPanel>
+
+					<!-- Protocol Section -->
+					<Border Height="1" Background="#3E3E42" Margin="0,8"/>
+
+					<TextBlock Text="Protocol"
+                               Foreground="#FFFFFF"
+                               FontWeight="SemiBold"
+                               FontSize="14"/>
+
+					<StackPanel Spacing="8">
+						<TextBlock Text="Protocol Type" Foreground="#CCCCCC" FontSize="12"/>
+						<ComboBox ItemsSource="{Binding AvailableProtocols}"
+                                  SelectedItem="{Binding SelectedProtocol}"
+                                  HorizontalAlignment="Stretch"/>
+					</StackPanel>
+
+					<!-- MQTT Settings -->
+					<StackPanel Spacing="12" IsVisible="{Binding IsMqtt}">
+						<TextBlock Text="MQTT Client Settings"
+                                   Foreground="#00BFFF"
+                                   FontSize="13"
+                                   FontWeight="SemiBold"/>
+
+						<StackPanel Spacing="8">
+							<TextBlock Text="Broker Address" Foreground="#CCCCCC" FontSize="12"/>
+							<TextBox Text="{Binding MqttBrokerAddress}"
+                                     Watermark="localhost or mqtt.example.com"/>
+						</StackPanel>
+
+						<StackPanel Spacing="8">
+							<TextBlock Text="Port" Foreground="#CCCCCC" FontSize="12"/>
+							<TextBox Text="{Binding MqttPort}"
+                                     Watermark="1883"/>
+						</StackPanel>
+
+						<StackPanel Spacing="8">
+							<TextBlock Text="Client ID" Foreground="#CCCCCC" FontSize="12"/>
+							<TextBox Text="{Binding MqttClientId}"
+                                     Watermark="prosologic-plc"/>
+						</StackPanel>
+
+						<StackPanel Spacing="8">
+							<TextBlock Text="Topic Prefix" Foreground="#CCCCCC" FontSize="12"/>
+							<TextBox Text="{Binding MqttTopicPrefix}"
+                                     Watermark="factory/line1"/>
+						</StackPanel>
+					</StackPanel>
+
+					<!-- OPC UA Settings -->
+					<StackPanel Spacing="12" IsVisible="{Binding IsOpcUa}">
+						<TextBlock Text="OPC UA Server Settings"
+                                   Foreground="#90EE90"
+                                   FontSize="13"
+                                   FontWeight="SemiBold"/>
+
+						<StackPanel Spacing="8">
+							<TextBlock Text="Server Name" Foreground="#CCCCCC" FontSize="12"/>
+							<TextBox Text="{Binding OpcUaServerName}"
+                                     Watermark="Prosologic PLC"/>
+						</StackPanel>
+
+						<StackPanel Spacing="8">
+							<TextBlock Text="Port" Foreground="#CCCCCC" FontSize="12"/>
+							<TextBox Text="{Binding OpcUaPort}"
+                                     Watermark="4840"/>
+						</StackPanel>
+
+						<StackPanel Spacing="8">
+							<TextBlock Text="Application URI" Foreground="#CCCCCC" FontSize="12"/>
+							<TextBox Text="{Binding OpcUaApplicationUri}"
+                                     Watermark="urn:prosologic:plc"/>
+						</StackPanel>
+
+						<StackPanel Spacing="8">
+							<TextBlock Text="Namespace URI" Foreground="#CCCCCC" FontSize="12"/>
+							<TextBox Text="{Binding OpcUaNamespaceUri}"
+                                     Watermark="http://prosologic.com/plc"/>
+						</StackPanel>
+					</StackPanel>
+
+					<!-- Buttons -->
+					<StackPanel Orientation="Horizontal"
+                                Spacing="8"
+                                Margin="0,16,0,0">
+						<Button Content="Save Changes"
+                                Command="{Binding SaveCommand}"
+                                Background="#0E639C"
+                                Foreground="White"
+                                Padding="16,8"/>
+						<Button Content="Reset"
+                                Command="{Binding ResetCommand}"
+                                Padding="16,8"/>
+					</StackPanel>
+
+					<!-- Changes indicator -->
+					<TextBlock Text="● Unsaved changes"
+                               Foreground="#FFA500"
+                               FontSize="11"
+                               IsVisible="{Binding HasChanges}"/>
+
+				</StackPanel>
+
+			</StackPanel>
+		</ScrollViewer>
+
+	</DockPanel>
+
+</UserControl>

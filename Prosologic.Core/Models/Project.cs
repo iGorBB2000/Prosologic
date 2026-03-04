@@ -8,6 +8,8 @@ namespace Prosologic.Core.Models
     {
         public string ProjectName { get; set; } = string.Empty;
         public string Version { get; set; } = "1.0.0";
+        public string? Author { get; set; }
+        public DateTime Modified { get; set; }
         public string? Description { get; set; }
 
         public ProtocolConfiguration Protocol { get; set; } = new MqttConfiguration();
@@ -53,6 +55,21 @@ namespace Prosologic.Core.Models
         public ProtocolType GetProtocolType()
         {
             return Protocol.ProtocolType;
+        }
+
+        public bool IsTagNameUniqueInGroup(TagGroup parentGroup, string tagName)
+        {
+            return !parentGroup.Tags.Any(t => t.Name.Equals(tagName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public bool IsTagGroupNameUnique(TagGroup parentGroup, string groupName)
+        {
+            return !parentGroup.SubGroups.Any(g => g.Name.Equals(groupName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public bool IsTagGroupNameUniqueAtRoot(string groupName)
+        {
+            return !TagGroups.Any(g => g.Name.Equals(groupName, StringComparison.OrdinalIgnoreCase));
         }
 
         public ValidationResult Validate()

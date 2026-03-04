@@ -1,0 +1,36 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Prosologic.Studio.ViewModels"
+             xmlns:views="using:Prosologic.Studio.Views"
+             x:Class="Prosologic.Studio.Views.PropertiesPanelView"
+             x:DataType="vm:PropertiesPanelViewModel"
+             x:Name="Root">
+
+	<Panel>
+
+		<!-- No Selection -->
+		<Border Background="#1E1E1E"
+                Padding="20"
+                IsVisible="{Binding #Root.DataContext.ShowNone}">
+			<TextBlock Text="Select an item to view its properties"
+                       Foreground="#808080"
+                       FontStyle="Italic"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Center"/>
+		</Border>
+
+		<!-- Project Properties -->
+		<views:ProjectPropertiesView DataContext="{Binding ProjectProperties}"
+                                     IsVisible="{Binding #Root.DataContext.ShowProjectProperties}"/>
+
+		<!-- Tag Group Editor -->
+		<views:TagGroupEditorView DataContext="{Binding TagGroupEditor}"
+                                  IsVisible="{Binding #Root.DataContext.ShowTagGroupEditor}"/>
+
+		<!-- Tag Editor -->
+		<views:TagEditorView DataContext="{Binding TagEditor}"
+                             IsVisible="{Binding #Root.DataContext.ShowTagEditor}"/>
+
+	</Panel>
+
+</UserControl>
