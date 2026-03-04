@@ -7,6 +7,8 @@ namespace Prosologic.Studio.Views;
 
 public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 {
+    private double _savedContainerHeight = 160;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -19,12 +21,43 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             new FileDialogService(this),
             new MessageBoxService(this)
         );
+
+        viewModel.PropertyChanged += (s, e) =>
+        {
+            if (e.PropertyName == nameof(MainWindowViewModel.ShowContainersPanel))
+                ApplyContainerPanelVisibility(viewModel.ShowContainersPanel);
+        };
+
+        // Apply initial state (hidden by default)
+        ApplyContainerPanelVisibility(viewModel.ShowContainersPanel);
+    }
+
+    private void ApplyContainerPanelVisibility(bool show)
+    {
+        if (show)
+        {
+            ContainerRow.MinHeight = 80;
+            ContainerRow.Height = new GridLength(_savedContainerHeight, GridUnitType.Pixel);
+            SplitterRow.Height = new GridLength(4, GridUnitType.Pixel);
+            ContainerSplitter.Visibility = Visibility.Visible;
+            ContainerBorder.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            if (ContainerRow.ActualHeight > 0)
+                _savedContainerHeight = ContainerRow.ActualHeight;
+
+            ContainerBorder.Visibility = Visibility.Collapsed;
+            ContainerSplitter.Visibility = Visibility.Collapsed;
+            ContainerRow.MinHeight = 0;
+            ContainerRow.Height = new GridLength(0, GridUnitType.Pixel);
+            SplitterRow.Height = new GridLength(0, GridUnitType.Pixel);
+        }
     }
 
     private void OnContentRendered(object? sender, EventArgs e)
     {
         ContentRendered -= OnContentRendered;
-
         WindowChrome.SetWindowChrome(this, new WindowChrome
         {
             CaptionHeight = 48,

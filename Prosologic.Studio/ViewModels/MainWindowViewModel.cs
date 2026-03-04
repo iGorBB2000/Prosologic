@@ -3,6 +3,7 @@ using Prosologic.Core.Enums;
 using Prosologic.Core.Models;
 using Prosologic.Core.Serialization;
 using Prosologic.Studio.Services;
+using System.Windows;
 
 namespace Prosologic.Studio.ViewModels;
 

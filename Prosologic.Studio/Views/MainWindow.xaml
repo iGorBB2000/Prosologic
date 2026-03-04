@@ -300,8 +300,8 @@
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
-                <RowDefinition Height="1"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition x:Name="SplitterRow" Height="4" MinHeight="0"/>
+                <RowDefinition x:Name="ContainerRow" Height="160" MinHeight="80"/>
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0">
@@ -325,15 +325,11 @@
                 </Border>
             </Grid>
 
-            <GridSplitter Grid.Row="1"
-                          Style="{StaticResource SplitterStyle}"
-                          Visibility="{Binding ShowContainersPanel, Converter={StaticResource BoolToVis}}"/>
+            <GridSplitter x:Name="ContainerSplitter" Grid.Row="1"
+                          Style="{StaticResource SplitterStyle}"/>
 
-            <Border Grid.Row="2"
-                    Background="{StaticResource BgCanvasBrush}"
-                    BorderBrush="{StaticResource GridLineBrush}"
-                    BorderThickness="0,1,0,0" Height="160"
-                    Visibility="{Binding ShowContainersPanel, Converter={StaticResource BoolToVis}}">
+            <Border x:Name="ContainerBorder" Grid.Row="2"
+                    Background="{StaticResource BgCanvasBrush}">
                 <views:ContainerManagerView/>
             </Border>
         </Grid>
