@@ -1,0 +1,83 @@
+﻿<UserControl x:Class="Prosologic.Studio.Views.ProjectExplorerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:vm="clr-namespace:Prosologic.Studio.ViewModels">
+
+    <DockPanel>
+
+        <!-- Header -->
+        <Border DockPanel.Dock="Top"
+                Background="#2D2D30"
+                Padding="12,8"
+                BorderBrush="#3E3E42"
+                BorderThickness="0,0,0,1">
+            <TextBlock Text="PROJECT EXPLORER"
+                       Foreground="#CCCCCC"
+                       FontWeight="SemiBold"
+                       FontSize="12"/>
+        </Border>
+
+        <!-- Tree View -->
+        <TreeView ItemsSource="{Binding Nodes}"
+                  SelectedItemChanged="TreeView_SelectedItemChanged"
+                  Background="Transparent"
+                  BorderThickness="0"
+                  Padding="8">
+
+            <TreeView.Resources>
+                <!-- Remove default selection highlight box -->
+                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#094771"/>
+                <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#37373D"/>
+            </TreeView.Resources>
+
+            <TreeView.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Add Tag Group"
+                              Command="{Binding AddTagGroupCommand}"
+                              InputGestureText="Ctrl+Shift+G"/>
+                    <MenuItem Header="Add Tag"
+                              Command="{Binding AddTagCommand}"
+                              InputGestureText="Ctrl+Shift+T"/>
+                    <Separator/>
+                    <MenuItem Header="Delete"
+                              Command="{Binding DeleteCommand}"
+                              InputGestureText="Delete"/>
+                </ContextMenu>
+            </TreeView.ContextMenu>
+
+            <TreeView.ItemContainerStyle>
+                <Style TargetType="TreeViewItem">
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                    <Setter Property="Foreground" Value="#CCCCCC"/>
+                </Style>
+            </TreeView.ItemContainerStyle>
+
+            <TreeView.ItemTemplate>
+                <HierarchicalDataTemplate DataType="{x:Type vm:TreeNodeViewModel}"
+                                          ItemsSource="{Binding Children}">
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel.Resources>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Margin" Value="0,2"/>
+                            </Style>
+                        </StackPanel.Resources>
+                        <!-- Icon -->
+                        <TextBlock Text="{Binding NodeType, Converter={StaticResource NodeTypeToIcon}}"
+                                   FontSize="14"
+                                   Margin="0,0,6,0"
+                                   VerticalAlignment="Center"/>
+                        <!-- Name -->
+                        <TextBlock Text="{Binding Name}"
+                                   Foreground="#CCCCCC"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </HierarchicalDataTemplate>
+            </TreeView.ItemTemplate>
+
+        </TreeView>
+
+    </DockPanel>
+
+</UserControl>

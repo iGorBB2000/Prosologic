@@ -1,7 +1,10 @@
-﻿using ReactiveUI;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Prosologic.Studio.ViewModels;
 
-public abstract class ViewModelBase : ReactiveObject
+/// <summary>
+/// Base class for all ViewModels
+/// </summary>
+public abstract class ViewModelBase : ObservableObject
 {
 }

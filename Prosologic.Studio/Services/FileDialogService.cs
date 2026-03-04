@@ -1,49 +1,49 @@
-﻿using Avalonia.Controls;
-using Avalonia.Platform.Storage;
-using System.Threading.Tasks;
+﻿using Microsoft.Win32;
+using System.IO;
+using System.Windows;
 
-namespace Prosologic.Studio.Services
+namespace Prosologic.Studio.Services;
+
+/// <summary>
+/// Folder picker using Microsoft.Win32.OpenFolderDialog,
+/// available natively in WPF on .NET 8+ — no extra packages or
+/// System.Windows.Forms reference needed.
+/// </summary>
+public class FileDialogService
 {
-    public class FileDialogService
+    private readonly Window _owner;
+
+    public FileDialogService(Window owner)
     {
-        private readonly Window _parentWindow;
+        _owner = owner;
+    }
 
-        public FileDialogService(Window parentWindow)
+    /// <summary>Prompts the user to select an existing folder. Returns null if cancelled.</summary>
+    public Task<string?> PickOpenFolderAsync()
+    {
+        var dialog = new OpenFolderDialog
         {
-            _parentWindow = parentWindow;
-        }
+            Title = "Select project folder"
+        };
 
-        public async Task<string?> PickSaveFolderAsync(string suggestedName)
+        return Task.FromResult(dialog.ShowDialog(_owner) == true ? dialog.FolderName : null);
+    }
+
+    /// <summary>Prompts the user to select a folder to save into. Returns null if cancelled.</summary>
+    public Task<string?> PickSaveFolderAsync(string suggestedName = "")
+    {
+        var dialog = new OpenFolderDialog
         {
-            var folder = await _parentWindow.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-            {
-                Title = "Save Project",
-                AllowMultiple = false,
-                SuggestedFileName = suggestedName
-            });
+            Title = "Choose folder to save project into"
+        };
 
-            if (folder.Count > 0)
-            {
-                return folder[0].Path.LocalPath;
-            }
+        if (dialog.ShowDialog(_owner) != true) return Task.FromResult((string?)null);
 
-            return null;
-        }
+        // Append the project name as a sub-folder, mirroring the original behaviour.
+        var target = string.IsNullOrWhiteSpace(suggestedName)
+            ? dialog.FolderName
+            : Path.Combine(dialog.FolderName, suggestedName);
 
-        public async Task<string?> PickOpenFolderAsync()
-        {
-            var folder = await _parentWindow.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-            {
-                Title = "Open Project",
-                AllowMultiple = false
-            });
-
-            if (folder.Count > 0)
-            {
-                return folder[0].Path.LocalPath;
-            }
-
-            return null;
-        }
+        return Task.FromResult<string?>(target);
     }
 }

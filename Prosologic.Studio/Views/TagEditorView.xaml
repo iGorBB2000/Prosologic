@@ -1,0 +1,225 @@
+﻿<UserControl x:Class="Prosologic.Studio.Views.TagEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:vm="clr-namespace:Prosologic.Studio.ViewModels">
+
+    <DockPanel>
+
+        <!-- Header -->
+        <Border DockPanel.Dock="Top"
+                Background="#2D2D30"
+                Padding="12,8"
+                BorderBrush="#3E3E42"
+                BorderThickness="0,0,0,1">
+            <TextBlock Text="TAG PROPERTIES"
+                       Foreground="#CCCCCC"
+                       FontWeight="SemiBold"
+                       FontSize="12"/>
+        </Border>
+
+        <!-- No tag selected -->
+        <Border Background="#1E1E1E"
+                Padding="20"
+                Visibility="{Binding IsTagLoaded, Converter={StaticResource InverseBoolToVis}}">
+            <TextBlock Text="Select a tag to edit its properties"
+                       Foreground="#808080"
+                       FontStyle="Italic"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Center"/>
+        </Border>
+
+        <!-- Tab control when tag loaded -->
+        <TabControl Background="Transparent"
+                    Padding="0" Margin="0"
+                    Visibility="{Binding IsTagLoaded, Converter={StaticResource BoolToVis}}">
+
+            <!-- Properties Tab -->
+            <TabItem Header="Properties">
+                <ScrollViewer>
+                    <StackPanel Margin="20">
+                        <StackPanel.Resources>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Margin" Value="0,0,0,12"/>
+                            </Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="#CCCCCC"/>
+                                <Setter Property="FontSize" Value="12"/>
+                                <Setter Property="Margin" Value="0,0,0,4"/>
+                            </Style>
+                        </StackPanel.Resources>
+
+                        <!-- Name -->
+                        <StackPanel>
+                            <TextBlock Text="Name"/>
+                            <ui:TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="Tag name"/>
+                        </StackPanel>
+
+                        <!-- Data Type -->
+                        <StackPanel>
+                            <TextBlock Text="Data Type"/>
+                            <ComboBox ItemsSource="{Binding AvailableDataTypes}"
+                                      SelectedItem="{Binding DataType}"
+                                      HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+
+                        <!-- Update Strategy -->
+                        <StackPanel>
+                            <TextBlock Text="Update Strategy"/>
+                            <ComboBox ItemsSource="{Binding AvailableUpdateStrategies}"
+                                      SelectedItem="{Binding UpdateStrategy}"
+                                      HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+
+                        <!-- Update Interval -->
+                        <StackPanel>
+                            <TextBlock Text="Update Interval (ms)"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ui:TextBox Grid.Column="0"
+                                            Text="{Binding UpdateInterval, UpdateSourceTrigger=PropertyChanged}"
+                                            PlaceholderText="1000"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="ms"
+                                           Foreground="#808080"
+                                           Margin="8,0,0,0"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Initial Value -->
+                        <StackPanel>
+                            <TextBlock Text="Initial Value"/>
+                            <ui:TextBox Text="{Binding InitialValue, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="0"/>
+                        </StackPanel>
+
+                        <!-- Engineering Unit -->
+                        <StackPanel>
+                            <TextBlock Text="Engineering Unit"/>
+                            <ui:TextBox Text="{Binding EngineeringUnit, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="e.g., °C, PSI, RPM"/>
+                        </StackPanel>
+
+                        <!-- Access Mode -->
+                        <StackPanel>
+                            <TextBlock Text="Access Mode"/>
+                            <ComboBox ItemsSource="{Binding AvailableAccessModes}"
+                                      SelectedItem="{Binding AccessMode}"
+                                      HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+
+                        <!-- Description -->
+                        <StackPanel>
+                            <TextBlock Text="Description"/>
+                            <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     Height="60"/>
+                        </StackPanel>
+
+                        <!-- Script hint -->
+                        <Border Background="#3E3E42"
+                                Padding="12,8"
+                                CornerRadius="4"
+                                Visibility="{Binding IsScriptRequired, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="💡 This tag uses a script. Switch to the Script tab to edit."
+                                       Foreground="#FFA500"
+                                       TextWrapping="Wrap"
+                                       FontSize="11"/>
+                        </Border>
+
+                        <!-- Buttons -->
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <ui:Button Content="Save Changes"
+                                       Command="{Binding SaveCommand}"
+                                       Appearance="Primary"
+                                       Margin="0,0,8,0"/>
+                            <ui:Button Content="Reset"
+                                       Command="{Binding ResetCommand}"/>
+                        </StackPanel>
+
+                        <!-- Unsaved indicator -->
+                        <TextBlock Text="● Unsaved changes"
+                                   Foreground="#FFA500"
+                                   FontSize="11"
+                                   Visibility="{Binding HasChanges, Converter={StaticResource BoolToVis}}"/>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Script Tab -->
+            <TabItem Header="Script" IsEnabled="{Binding IsScriptRequired}">
+                <DockPanel>
+
+                    <!-- Script Info Header -->
+                    <Border DockPanel.Dock="Top"
+                            Background="#2D2D30"
+                            Padding="12,8"
+                            BorderBrush="#3E3E42"
+                            BorderThickness="0,0,0,1">
+                        <StackPanel>
+                            <TextBlock Text="C# Script Editor"
+                                       Foreground="#FFFFFF"
+                                       FontWeight="SemiBold"
+                                       FontSize="12"
+                                       Margin="0,0,0,4"/>
+                            <TextBlock Text="Write C# code to compute the tag value. The 'value' variable contains the current value."
+                                       Foreground="#808080"
+                                       FontSize="11"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Buttons at bottom -->
+                    <Border DockPanel.Dock="Bottom"
+                            Background="#252526"
+                            Padding="12,8"
+                            BorderBrush="#3E3E42"
+                            BorderThickness="0,1,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:Button Content="Save Script"
+                                       Command="{Binding SaveCommand}"
+                                       Appearance="Primary"
+                                       Margin="0,0,8,0"/>
+                            <ui:Button Content="Reset"
+                                       Command="{Binding ResetCommand}"
+                                       Margin="0,0,8,0"/>
+                            <TextBlock Text="● Unsaved changes"
+                                       Foreground="#FFA500"
+                                       FontSize="11"
+                                       VerticalAlignment="Center"
+                                       Visibility="{Binding HasChanges, Converter={StaticResource BoolToVis}}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Script Editor -->
+                    <Border Background="#1E1E1E"
+                            BorderBrush="#3E3E42"
+                            BorderThickness="0">
+                        <TextBox Text="{Binding ScriptContent, UpdateSourceTrigger=PropertyChanged}"
+                                 AcceptsReturn="True"
+                                 FontFamily="Consolas, Courier New, monospace"
+                                 FontSize="13"
+                                 TextWrapping="NoWrap"
+                                 Background="#1E1E1E"
+                                 Foreground="#D4D4D4"
+                                 Padding="8"
+                                 HorizontalScrollBarVisibility="Auto"
+                                 VerticalScrollBarVisibility="Auto"
+                                 BorderThickness="0"/>
+                    </Border>
+
+                </DockPanel>
+            </TabItem>
+
+        </TabControl>
+
+    </DockPanel>
+
+</UserControl>

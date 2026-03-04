@@ -1,112 +1,95 @@
-﻿using Prosologic.Core.Models;
-using ReactiveUI;
-using System;
-using System.Reactive;
+﻿using CommunityToolkit.Mvvm.Input;
+using Prosologic.Core.Models;
 
-namespace Prosologic.Studio.ViewModels
+namespace Prosologic.Studio.ViewModels;
+
+public class TagGroupEditorViewModel : ViewModelBase
 {
-    public class TagGroupEditorViewModel : ViewModelBase
+    private TagGroup? _currentGroup;
+    private bool _hasChanges;
+
+    private string _name = string.Empty;
+    private string _description = string.Empty;
+
+    public string Name
     {
-        private TagGroup? _currentGroup;
-        private bool _hasChanges;
+        get => _name;
+        set { SetProperty(ref _name, value); HasChanges = true; }
+    }
 
-        private string _name = string.Empty;
-        private string _description = string.Empty;
+    public string Description
+    {
+        get => _description;
+        set { SetProperty(ref _description, value); HasChanges = true; }
+    }
 
-        public string Name
+    public bool HasChanges
+    {
+        get => _hasChanges;
+        private set
         {
-            get => _name;
-            set
-            {
-                this.RaiseAndSetIfChanged(ref _name, value);
-                HasChanges = true;
-            }
+            SetProperty(ref _hasChanges, value);
+            SaveCommand.NotifyCanExecuteChanged();
+            ResetCommand.NotifyCanExecuteChanged();
         }
+    }
 
-        public string Description
-        {
-            get => _description;
-            set
-            {
-                this.RaiseAndSetIfChanged(ref _description, value);
-                HasChanges = true;
-            }
-        }
+    public bool IsGroupLoaded => _currentGroup != null;
 
-        public bool HasChanges
-        {
-            get => _hasChanges;
-            private set => this.RaiseAndSetIfChanged(ref _hasChanges, value);
-        }
+    public RelayCommand SaveCommand { get; }
+    public RelayCommand ResetCommand { get; }
 
-        public bool IsGroupLoaded => _currentGroup != null;
+    public event EventHandler<(TagGroup Group, string OldName, string NewName)>? GroupNameChanged;
+    public event EventHandler? GroupSaved;
 
-        #region Commands
-        public ReactiveCommand<Unit, Unit> SaveCommand { get; }
-        public ReactiveCommand<Unit, Unit> ResetCommand { get; }
-        #endregion
+    public TagGroupEditorViewModel()
+    {
+        SaveCommand = new RelayCommand(Save, () => IsGroupLoaded && HasChanges);
+        ResetCommand = new RelayCommand(Reset, () => IsGroupLoaded);
+    }
 
-        public event EventHandler<(TagGroup Group, string OldName, string NewName)>? GroupNameChanged;
-        public event EventHandler? GroupSaved;
+    public void LoadGroup(TagGroup group)
+    {
+        _currentGroup = group;
+        _name = group.Name;
+        _description = group.Description ?? string.Empty;
 
-        public TagGroupEditorViewModel()
-        {
-            var canSave = this.WhenAnyValue(
-                x => x.IsGroupLoaded,
-                x => x.HasChanges,
-                (loaded, changed) => loaded && changed);
+        OnPropertyChanged(nameof(Name));
+        OnPropertyChanged(nameof(Description));
+        OnPropertyChanged(nameof(IsGroupLoaded));
 
-            SaveCommand = ReactiveCommand.Create(Save, canSave);
-            ResetCommand = ReactiveCommand.Create(Reset, this.WhenAnyValue(x => x.IsGroupLoaded));
-        }
+        HasChanges = false;
+    }
 
-        public void LoadGroup(TagGroup group)
-        {
-            _currentGroup = group;
+    public void Clear()
+    {
+        _currentGroup = null;
+        _name = string.Empty;
+        _description = string.Empty;
 
-            _name = group.Name;
-            _description = group.Description ?? string.Empty;
+        OnPropertyChanged(nameof(IsGroupLoaded));
+        HasChanges = false;
+    }
 
-            this.RaisePropertyChanged(nameof(Name));
-            this.RaisePropertyChanged(nameof(Description));
-            this.RaisePropertyChanged(nameof(IsGroupLoaded));
+    private void Save()
+    {
+        if (_currentGroup == null) return;
 
-            HasChanges = false;
-        }
+        var oldName = _currentGroup.Name;
 
-        public void Clear()
-        {
-            _currentGroup = null;
-            _name = string.Empty;
-            _description = string.Empty;
+        _currentGroup.Name = Name;
+        _currentGroup.Description = string.IsNullOrWhiteSpace(Description) ? null : Description;
 
-            this.RaisePropertyChanged(nameof(IsGroupLoaded));
-            HasChanges = false;
-        }
+        HasChanges = false;
 
-        private void Save()
-        {
-            if (_currentGroup == null) return;
+        if (oldName != Name)
+            GroupNameChanged?.Invoke(this, (_currentGroup, oldName, Name));
 
-            var oldName = _currentGroup.Name;
+        GroupSaved?.Invoke(this, EventArgs.Empty);
+    }
 
-            _currentGroup.Name = Name;
-            _currentGroup.Description = string.IsNullOrWhiteSpace(Description) ? null : Description;
-
-            HasChanges = false;
-
-            if (oldName != Name)
-            {
-                GroupNameChanged?.Invoke(this, (_currentGroup, oldName, Name));
-            }
-
-            GroupSaved?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void Reset()
-        {
-            if (_currentGroup == null) return;
-            LoadGroup(_currentGroup);
-        }
+    private void Reset()
+    {
+        if (_currentGroup != null) LoadGroup(_currentGroup);
     }
 }

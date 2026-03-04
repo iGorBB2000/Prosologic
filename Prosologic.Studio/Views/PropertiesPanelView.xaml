@@ -1,0 +1,36 @@
+﻿<UserControl x:Class="Prosologic.Studio.Views.PropertiesPanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Prosologic.Studio.ViewModels"
+             xmlns:views="clr-namespace:Prosologic.Studio.Views"
+             x:Name="Root">
+
+    <Grid>
+        <!-- No Selection -->
+        <Border Background="#1E1E1E"
+                Padding="20"
+                Visibility="{Binding ShowNone, Converter={StaticResource BoolToVis}}">
+            <TextBlock Text="Select an item to view its properties"
+                       Foreground="#808080"
+                       FontStyle="Italic"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Center"/>
+        </Border>
+
+        <!-- Project Properties -->
+        <views:ProjectPropertiesView DataContext="{Binding ProjectProperties}"
+                                     Visibility="{Binding DataContext.ShowProjectProperties,
+                                         ElementName=Root, Converter={StaticResource BoolToVis}}"/>
+
+        <!-- Tag Group Editor -->
+        <views:TagGroupEditorView DataContext="{Binding TagGroupEditor}"
+                                  Visibility="{Binding DataContext.ShowTagGroupEditor,
+                                      ElementName=Root, Converter={StaticResource BoolToVis}}"/>
+
+        <!-- Tag Editor -->
+        <views:TagEditorView DataContext="{Binding TagEditor}"
+                             Visibility="{Binding DataContext.ShowTagEditor,
+                                 ElementName=Root, Converter={StaticResource BoolToVis}}"/>
+    </Grid>
+
+</UserControl>

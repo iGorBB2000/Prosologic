@@ -1,13 +1,8 @@
-﻿using Prosologic.Core.Enums;
+﻿using CommunityToolkit.Mvvm.Input;
+using Prosologic.Core.Enums;
 using Prosologic.Core.Models;
 using Prosologic.Core.Serialization;
 using Prosologic.Studio.Services;
-using ReactiveUI;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reactive;
-using System.Threading.Tasks;
 
 namespace Prosologic.Studio.ViewModels;
 
@@ -26,17 +21,28 @@ public partial class MainWindowViewModel : ViewModelBase
     public ProjectExplorerViewModel ProjectExplorer { get; }
     public PropertiesPanelViewModel PropertiesPanel { get; }
 
-    #region Properties
+    // ── Properties ───────────────────────────────────────────────────────────
+
     public Project? CurrentProject
     {
         get => _currentProject;
-        set => this.RaiseAndSetIfChanged(ref _currentProject, value);
+        set
+        {
+            SetProperty(ref _currentProject, value);
+            // Replaces: WhenAnyValue(x => x.CurrentProject, x => x.HasUnsavedChanges).Subscribe(...)
+            // We just notify the derived properties manually here instead.
+            OnPropertyChanged(nameof(WindowTitle));
+            OnPropertyChanged(nameof(IsProjectOpen));
+            SaveProjectCommand.NotifyCanExecuteChanged();
+            SaveAsProjectCommand.NotifyCanExecuteChanged();
+            CloseProjectCommand.NotifyCanExecuteChanged();
+        }
     }
 
     public string StatusMessage
     {
         get => _statusMessage;
-        set => this.RaiseAndSetIfChanged(ref _statusMessage, value);
+        set => SetProperty(ref _statusMessage, value);
     }
 
     public bool ShowContainersPanel
@@ -44,15 +50,19 @@ public partial class MainWindowViewModel : ViewModelBase
         get => _showContainersPanel;
         set
         {
-            this.RaiseAndSetIfChanged(ref _showContainersPanel, value);
-            this.RaisePropertyChanged(nameof(ShowContainersPanelText));
+            SetProperty(ref _showContainersPanel, value);
+            OnPropertyChanged(nameof(ShowContainersPanelText));
         }
     }
 
     public bool HasUnsavedChanges
     {
         get => _hasUnsavedChanges;
-        set => this.RaiseAndSetIfChanged(ref _hasUnsavedChanges, value);
+        set
+        {
+            SetProperty(ref _hasUnsavedChanges, value);
+            OnPropertyChanged(nameof(WindowTitle));
+        }
     }
 
     public string ShowContainersPanelText =>
@@ -66,25 +76,25 @@ public partial class MainWindowViewModel : ViewModelBase
             if (CurrentProject != null)
             {
                 title = $"{CurrentProject.ProjectName} - {title}";
-                if (HasUnsavedChanges)
-                    title = $"*{title}";
+                if (HasUnsavedChanges) title = $"*{title}";
             }
             return title;
         }
     }
 
     public bool IsProjectOpen => CurrentProject != null;
-    #endregion
 
-    #region Commands
-    public ReactiveCommand<Unit, Unit> NewProjectCommand { get; }
-    public ReactiveCommand<Unit, Unit> OpenProjectCommand { get; }
-    public ReactiveCommand<Unit, Unit> SaveProjectCommand { get; }
-    public ReactiveCommand<Unit, Unit> SaveAsProjectCommand { get; }
-    public ReactiveCommand<Unit, Unit> CloseProjectCommand { get; }
-    public ReactiveCommand<Unit, Unit> ToggleContainersCommand { get; }
-    public ReactiveCommand<Unit, Unit> ExitCommand { get; }
-    #endregion
+    // ── Commands ─────────────────────────────────────────────────────────────
+
+    public RelayCommand NewProjectCommand { get; }
+    public AsyncRelayCommand OpenProjectCommand { get; }
+    public AsyncRelayCommand SaveProjectCommand { get; }
+    public AsyncRelayCommand SaveAsProjectCommand { get; }
+    public RelayCommand CloseProjectCommand { get; }
+    public RelayCommand ToggleContainersCommand { get; }
+    public RelayCommand ExitCommand { get; }
+
+    // ── Constructor ──────────────────────────────────────────────────────────
 
     public MainWindowViewModel()
     {
@@ -100,32 +110,15 @@ public partial class MainWindowViewModel : ViewModelBase
         PropertiesPanel.TagGroupEditor.GroupNameChanged += OnTagGroupNameChanged;
         PropertiesPanel.TagGroupEditor.GroupSaved += OnTagGroupSaved;
         PropertiesPanel.ProjectProperties.ProjectSaved += OnProjectPropertiesSaved;
+        PropertiesPanel.TagEditor.TagSaved += OnTagSaved;
 
-        NewProjectCommand = ReactiveCommand.Create(NewProject);
-        OpenProjectCommand = ReactiveCommand.CreateFromTask(OpenProjectAsync);
-
-        var canSave = this.WhenAnyValue(x => x.IsProjectOpen);
-        SaveProjectCommand = ReactiveCommand.CreateFromTask(SaveProjectAsync, canSave);
-        SaveAsProjectCommand = ReactiveCommand.CreateFromTask(SaveAsProjectAsync, canSave);
-        CloseProjectCommand = ReactiveCommand.Create(CloseProject, canSave);
-
-        ToggleContainersCommand = ReactiveCommand.Create(ToggleContainers);
-        ExitCommand = ReactiveCommand.Create(Exit);
-
-        this.WhenAnyValue(x => x.CurrentProject, x => x.HasUnsavedChanges)
-            .Subscribe(_ =>
-            {
-                this.RaisePropertyChanged(nameof(WindowTitle));
-                this.RaisePropertyChanged(nameof(IsProjectOpen));
-            });
-
-        PropertiesPanel.TagEditor.TagSaved += (s, e) =>
-        {
-            if (ProjectExplorer.SelectedNode != null)
-            {
-                ProjectExplorer.SelectedNode.RefreshName();
-            }
-        };
+        NewProjectCommand = new RelayCommand(NewProject);
+        OpenProjectCommand = new AsyncRelayCommand(OpenProjectAsync);
+        SaveProjectCommand = new AsyncRelayCommand(SaveProjectAsync, () => IsProjectOpen);
+        SaveAsProjectCommand = new AsyncRelayCommand(SaveAsProjectAsync, () => IsProjectOpen);
+        CloseProjectCommand = new RelayCommand(CloseProject, () => IsProjectOpen);
+        ToggleContainersCommand = new RelayCommand(ToggleContainers);
+        ExitCommand = new RelayCommand(Exit);
     }
 
     public void Initialize(FileDialogService fileDialogService, MessageBoxService messageBoxService)
@@ -133,6 +126,8 @@ public partial class MainWindowViewModel : ViewModelBase
         _fileDialogService = fileDialogService;
         _messageBoxService = messageBoxService;
     }
+
+    // ── Command implementations ───────────────────────────────────────────────
 
     private void NewProject()
     {
@@ -148,24 +143,13 @@ public partial class MainWindowViewModel : ViewModelBase
             },
             TagGroups = new()
             {
-                // ADD SOME TEST DATA:
                 new TagGroup
                 {
                     Name = "Sensors",
                     Tags = new()
                     {
-                        new Tag
-                        {
-                            Name = "Temperature",
-                            DataType = Core.Enums.TagDataType.Float,
-                            InitialValue = 20.0
-                        },
-                        new Tag
-                        {
-                            Name = "Pressure",
-                            DataType = Core.Enums.TagDataType.Float,
-                            InitialValue = 101.3
-                        }
+                        new Tag { Name = "Temperature", DataType = TagDataType.Float, InitialValue = 20.0 },
+                        new Tag { Name = "Pressure",    DataType = TagDataType.Float, InitialValue = 101.3 }
                     }
                 },
                 new TagGroup
@@ -173,12 +157,7 @@ public partial class MainWindowViewModel : ViewModelBase
                     Name = "Actuators",
                     Tags = new()
                     {
-                        new Tag
-                        {
-                            Name = "ConveyorSpeed",
-                            DataType = Core.Enums.TagDataType.Float,
-                            InitialValue = 0.0
-                        }
+                        new Tag { Name = "ConveyorSpeed", DataType = TagDataType.Float, InitialValue = 0.0 }
                     }
                 }
             }
@@ -209,17 +188,14 @@ public partial class MainWindowViewModel : ViewModelBase
             HasUnsavedChanges = false;
 
             ProjectExplorer.LoadProject(project);
-
             StatusMessage = $"Project loaded: {project.ProjectName}";
         }
         catch (Exception ex)
         {
             StatusMessage = $"Failed to open project: {ex.Message}";
             if (_messageBoxService != null)
-            {
                 await _messageBoxService.ShowErrorAsync("Error Opening Project",
                     $"Could not open project:\n\n{ex.Message}");
-            }
         }
     }
 
@@ -238,14 +214,12 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task SaveAsProjectAsync()
     {
-        if (CurrentProject == null || _fileDialogService == null)
-            return;
+        if (CurrentProject == null || _fileDialogService == null) return;
 
         try
         {
             var folderPath = await _fileDialogService.PickSaveFolderAsync(CurrentProject.ProjectName);
-            if (folderPath == null)
-                return; // User cancelled
+            if (folderPath == null) return;
 
             await SaveToPathAsync(folderPath);
             _currentProjectPath = folderPath;
@@ -263,11 +237,9 @@ public partial class MainWindowViewModel : ViewModelBase
         try
         {
             StatusMessage = "Saving project...";
-
             await _serializer.SaveAsync(CurrentProject, path);
-
             HasUnsavedChanges = false;
-            StatusMessage = $"Project saved successfully";
+            StatusMessage = "Project saved successfully";
         }
         catch (Exception ex)
         {
@@ -277,11 +249,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async void CloseProject()
     {
-        if (HasUnsavedChanges)
-        {
-            await _messageBoxService.ShowWarningAsync("Unsaved changes", $"{CurrentProject.ProjectName} has unsaved changes");
-            StatusMessage = "Warning: You have unsaved changes";
-        }
+        if (HasUnsavedChanges && _messageBoxService != null)
+            await _messageBoxService.ShowWarningAsync("Unsaved changes",
+                $"{CurrentProject?.ProjectName} has unsaved changes");
 
         CurrentProject = null;
         _currentProjectPath = string.Empty;
@@ -292,237 +262,11 @@ public partial class MainWindowViewModel : ViewModelBase
         PropertiesPanel.Clear();
     }
 
-    private void Exit()
-    {
-        // TODO: Check for unsaved changes
-        Environment.Exit(0);
-    }
+    private void Exit() => Environment.Exit(0);
 
-    private async void OnAddTagGroupRequested(object? sender, (string Name, TreeNodeViewModel Parent) e)
-    {
-        if (_messageBoxService == null || CurrentProject == null) return;
+    private void ToggleContainers() => ShowContainersPanel = !ShowContainersPanel;
 
-        while (true)
-        {
-            var name = await _messageBoxService.ShowInputAsync(
-                "Add Tag Group",
-                "Enter tag group name:",
-                "e.g., Sensors, Actuators",
-                "NewGroup"
-            );
-
-            if (string.IsNullOrWhiteSpace(name)) return;
-
-            bool isUnique = false;
-
-            if (e.Parent.NodeType == NodeType.Project)
-            {
-                isUnique = CurrentProject.IsTagGroupNameUniqueAtRoot(name);
-            }
-            else if (e.Parent.DataContext is TagGroup parentGroup)
-            {
-                isUnique = CurrentProject.IsTagGroupNameUnique(parentGroup, name);
-            }
-
-            if (!isUnique)
-            {
-                await _messageBoxService.ShowWarningAsync(
-                    "Duplicate Name",
-                    $"A tag group named '{name}' already exists at this level.\n\nPlease choose a different name."
-                );
-                continue;
-            }
-
-            var tagGroup = new TagGroup
-            {
-                Name = name,
-                Description = null
-            };
-
-            if (e.Parent.NodeType == NodeType.Project && e.Parent.DataContext is Project project)
-            {
-                project.TagGroups.Add(tagGroup);
-            }
-            else if (e.Parent.NodeType == NodeType.TagGroup && e.Parent.DataContext is TagGroup parentGroup)
-            {
-                parentGroup.SubGroups.Add(tagGroup);
-            }
-
-            ProjectExplorer.AddTagGroupNode(tagGroup, e.Parent);
-
-            HasUnsavedChanges = true;
-            StatusMessage = $"Tag group '{name}' added";
-            break;
-        }
-    }
-
-    private async void OnAddTagRequested(object? sender, (string Name, TreeNodeViewModel Parent) e)
-    {
-        if (_messageBoxService == null || CurrentProject == null) return;
-
-        if (e.Parent.DataContext is not TagGroup parentGroup)
-            return;
-
-        while (true)
-        {
-            var name = await _messageBoxService.ShowInputAsync(
-                "Add Tag",
-                "Enter tag name:",
-                "e.g., Temperature, Pressure",
-                "NewTag"
-            );
-
-            if (string.IsNullOrWhiteSpace(name)) return;
-
-            if (!CurrentProject.IsTagNameUniqueInGroup(parentGroup, name))
-            {
-                await _messageBoxService.ShowWarningAsync(
-                    "Duplicate Name",
-                    $"A tag named '{name}' already exists in this tag group.\n\nPlease choose a different name."
-                );
-                continue; // Ask again
-            }
-
-            var tag = new Tag
-            {
-                Name = name,
-                DataType = TagDataType.Float,
-                UpdateStrategy = UpdateStrategy.Static,
-                UpdateInterval = 1000,
-                InitialValue = 0.0,
-                AccessMode = TagAccessMode.ReadWrite
-            };
-
-            parentGroup.Tags.Add(tag);
-
-            ProjectExplorer.AddTagNode(tag, e.Parent);
-
-            HasUnsavedChanges = true;
-            StatusMessage = $"Tag '{name}' added";
-            break;
-        }
-    }
-
-    private async void OnDeleteRequested(object? sender, TreeNodeViewModel node)
-    {
-        if (_messageBoxService == null) return;
-
-        var itemType = node.NodeType == NodeType.Tag ? "tag" : "tag group";
-        var confirmed = await _messageBoxService.ConfirmAsync(
-            "Confirm Delete",
-            $"Are you sure you want to delete {itemType} '{node.Name}'?"
-        );
-
-        if (!confirmed) return;
-
-        if (node.NodeType == NodeType.Tag && node.DataContext is Tag tag)
-        {
-            RemoveTagFromProject(CurrentProject, tag);
-        }
-        else if (node.NodeType == NodeType.TagGroup && node.DataContext is TagGroup group)
-        {
-            RemoveTagGroupFromProject(CurrentProject, group);
-        }
-
-        ProjectExplorer.RemoveNode(node);
-
-        HasUnsavedChanges = true;
-        StatusMessage = $"Deleted {itemType} '{node.Name}'";
-    }
-
-    private void OnTagGroupNameChanged(object? sender, (TagGroup Group, string OldName, string NewName) e)
-    {
-        var node = ProjectExplorer.Nodes.SelectMany(n => GetAllNodes(n))
-            .FirstOrDefault(n => n.DataContext == e.Group);
-
-        if (node != null)
-        {
-            node.Name = e.NewName;
-        }
-
-        HasUnsavedChanges = true;
-    }
-
-    private void OnTagGroupSaved(object? sender, EventArgs e)
-    {
-        HasUnsavedChanges = true;
-    }
-
-    private IEnumerable<TreeNodeViewModel> GetAllNodes(TreeNodeViewModel node)
-    {
-        yield return node;
-        foreach (var child in node.Children.SelectMany(GetAllNodes))
-        {
-            yield return child;
-        }
-    }
-
-    private void RemoveTagFromProject(Project? project, Tag tag)
-    {
-        if (project == null) return;
-
-        foreach (var group in project.TagGroups)
-        {
-            if (RemoveTagFromGroup(group, tag))
-                return;
-        }
-    }
-
-    private bool RemoveTagFromGroup(TagGroup group, Tag tag)
-    {
-        if (group.Tags.Contains(tag))
-        {
-            group.Tags.Remove(tag);
-            return true;
-        }
-
-        foreach (var subGroup in group.SubGroups)
-        {
-            if (RemoveTagFromGroup(subGroup, tag))
-                return true;
-        }
-
-        return false;
-    }
-
-    private void RemoveTagGroupFromProject(Project? project, TagGroup groupToRemove)
-    {
-        if (project == null) return;
-
-        if (project.TagGroups.Contains(groupToRemove))
-        {
-            project.TagGroups.Remove(groupToRemove);
-            return;
-        }
-
-        foreach (var group in project.TagGroups)
-        {
-            if (RemoveTagGroupFromGroup(group, groupToRemove))
-                return;
-        }
-    }
-
-    private bool RemoveTagGroupFromGroup(TagGroup parent, TagGroup groupToRemove)
-    {
-        if (parent.SubGroups.Contains(groupToRemove))
-        {
-            parent.SubGroups.Remove(groupToRemove);
-            return true;
-        }
-
-        foreach (var subGroup in parent.SubGroups)
-        {
-            if (RemoveTagGroupFromGroup(subGroup, groupToRemove))
-                return true;
-        }
-
-        return false;
-    }
-
-    private void ToggleContainers()
-    {
-        ShowContainersPanel = !ShowContainersPanel;
-    }
+    // ── Event handlers ────────────────────────────────────────────────────────
 
     private void OnSelectionChanged(object? sender, (NodeType Type, object? Data) e)
     {
@@ -550,47 +294,123 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private void OnTagSaved(object? sender, EventArgs e)
+    private async void OnAddTagGroupRequested(object? sender, (string Name, TreeNodeViewModel Parent) e)
     {
-        if (ProjectExplorer.SelectedNode != null)
+        if (_messageBoxService == null || CurrentProject == null) return;
+
+        while (true)
         {
-            ProjectExplorer.SelectedNode.RefreshName();
+            var name = await _messageBoxService.ShowInputAsync(
+                "Add Tag Group",
+                "Enter tag group name:",
+                "e.g., Sensors, Actuators",
+                "NewGroup");
+
+            if (string.IsNullOrWhiteSpace(name)) return;
+
+            bool isUnique = e.Parent.NodeType == NodeType.Project
+                ? CurrentProject.IsTagGroupNameUniqueAtRoot(name)
+                : e.Parent.DataContext is TagGroup pg && CurrentProject.IsTagGroupNameUnique(pg, name);
+
+            if (!isUnique)
+            {
+                await _messageBoxService.ShowWarningAsync("Duplicate Name",
+                    $"A tag group named '{name}' already exists at this level.\n\nPlease choose a different name.");
+                continue;
+            }
+
+            var tagGroup = new TagGroup { Name = name };
+
+            if (e.Parent.NodeType == NodeType.Project && e.Parent.DataContext is Project proj)
+                proj.TagGroups.Add(tagGroup);
+            else if (e.Parent.NodeType == NodeType.TagGroup && e.Parent.DataContext is TagGroup parentGroup)
+                parentGroup.SubGroups.Add(tagGroup);
+
+            ProjectExplorer.AddTagGroupNode(tagGroup, e.Parent);
+            HasUnsavedChanges = true;
+            StatusMessage = $"Tag group '{name}' added";
+            break;
         }
+    }
+
+    private async void OnAddTagRequested(object? sender, (string Name, TreeNodeViewModel Parent) e)
+    {
+        if (_messageBoxService == null || CurrentProject == null) return;
+        if (e.Parent.DataContext is not TagGroup parentGroup) return;
+
+        while (true)
+        {
+            var name = await _messageBoxService.ShowInputAsync(
+                "Add Tag",
+                "Enter tag name:",
+                "e.g., Temperature, Pressure",
+                "NewTag");
+
+            if (string.IsNullOrWhiteSpace(name)) return;
+
+            if (!CurrentProject.IsTagNameUniqueInGroup(parentGroup, name))
+            {
+                await _messageBoxService.ShowWarningAsync("Duplicate Name",
+                    $"A tag named '{name}' already exists in this tag group.\n\nPlease choose a different name.");
+                continue;
+            }
+
+            var tag = new Tag
+            {
+                Name = name,
+                DataType = TagDataType.Float,
+                UpdateStrategy = UpdateStrategy.Static,
+                UpdateInterval = 1000,
+                InitialValue = 0.0,
+                AccessMode = TagAccessMode.ReadWrite
+            };
+
+            parentGroup.Tags.Add(tag);
+            ProjectExplorer.AddTagNode(tag, e.Parent);
+            HasUnsavedChanges = true;
+            StatusMessage = $"Tag '{name}' added";
+            break;
+        }
+    }
+
+    private async void OnDeleteRequested(object? sender, TreeNodeViewModel node)
+    {
+        if (_messageBoxService == null) return;
+
+        var itemType = node.NodeType == NodeType.Tag ? "tag" : "tag group";
+        var confirmed = await _messageBoxService.ConfirmAsync("Confirm Delete",
+            $"Are you sure you want to delete {itemType} '{node.Name}'?");
+
+        if (!confirmed) return;
+
+        if (node.NodeType == NodeType.Tag && node.DataContext is Tag tag)
+            RemoveTagFromProject(CurrentProject, tag);
+        else if (node.NodeType == NodeType.TagGroup && node.DataContext is TagGroup group)
+            RemoveTagGroupFromProject(CurrentProject, group);
+
+        ProjectExplorer.RemoveNode(node);
+        HasUnsavedChanges = true;
+        StatusMessage = $"Deleted {itemType} '{node.Name}'";
+    }
+
+    private void OnTagGroupNameChanged(object? sender, (TagGroup Group, string OldName, string NewName) e)
+    {
+        var node = ProjectExplorer.Nodes
+            .SelectMany(GetAllNodes)
+            .FirstOrDefault(n => n.DataContext == e.Group);
+
+        if (node != null) node.Name = e.NewName;
+
         HasUnsavedChanges = true;
     }
 
-    private async void OnValidateTagNameChange(object? sender, (Tag Tag, string OldName, string NewName, Action<bool> Callback) e)
+    private void OnTagGroupSaved(object? sender, EventArgs e) =>
+        HasUnsavedChanges = true;
+
+    private void OnTagSaved(object? sender, EventArgs e)
     {
-        if (_messageBoxService == null || CurrentProject == null)
-        {
-            e.Callback(true);
-            return;
-        }
-
-        TagGroup? parentGroup = FindParentGroup(CurrentProject, e.Tag);
-
-        if (parentGroup == null)
-        {
-            e.Callback(true);
-            return;
-        }
-
-        var isDuplicate = parentGroup.Tags
-            .Where(t => t != e.Tag)
-            .Any(t => t.Name.Equals(e.NewName, StringComparison.OrdinalIgnoreCase));
-
-        if (isDuplicate)
-        {
-            await _messageBoxService.ShowWarningAsync(
-                "Duplicate Name",
-                $"A tag named '{e.NewName}' already exists in this tag group.\n\nPlease choose a different name."
-            );
-            e.Callback(false);
-        }
-        else
-        {
-            e.Callback(true);
-        }
+        ProjectExplorer.SelectedNode?.RefreshName();
+        HasUnsavedChanges = true;
     }
 
     private void OnProjectPropertiesSaved(object? sender, EventArgs e)
@@ -598,14 +418,52 @@ public partial class MainWindowViewModel : ViewModelBase
         HasUnsavedChanges = true;
 
         if (CurrentProject != null && ProjectExplorer.Nodes.Count > 0)
-        {
             ProjectExplorer.Nodes[0].Name = CurrentProject.ProjectName;
-        }
 
         StatusMessage = "Project properties saved";
     }
 
-    private TagGroup? FindParentGroup(Project project, Tag tag)
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static IEnumerable<TreeNodeViewModel> GetAllNodes(TreeNodeViewModel node)
+    {
+        yield return node;
+        foreach (var child in node.Children.SelectMany(GetAllNodes))
+            yield return child;
+    }
+
+    private static void RemoveTagFromProject(Project? project, Tag tag)
+    {
+        if (project == null) return;
+        foreach (var group in project.TagGroups)
+            if (RemoveTagFromGroup(group, tag)) return;
+    }
+
+    private static bool RemoveTagFromGroup(TagGroup group, Tag tag)
+    {
+        if (group.Tags.Remove(tag)) return true;
+        foreach (var sub in group.SubGroups)
+            if (RemoveTagFromGroup(sub, tag)) return true;
+        return false;
+    }
+
+    private static void RemoveTagGroupFromProject(Project? project, TagGroup groupToRemove)
+    {
+        if (project == null) return;
+        if (project.TagGroups.Remove(groupToRemove)) return;
+        foreach (var group in project.TagGroups)
+            if (RemoveTagGroupFromGroup(group, groupToRemove)) return;
+    }
+
+    private static bool RemoveTagGroupFromGroup(TagGroup parent, TagGroup target)
+    {
+        if (parent.SubGroups.Remove(target)) return true;
+        foreach (var sub in parent.SubGroups)
+            if (RemoveTagGroupFromGroup(sub, target)) return true;
+        return false;
+    }
+
+    private static TagGroup? FindParentGroup(Project project, Tag tag)
     {
         foreach (var group in project.TagGroups)
         {
@@ -615,17 +473,14 @@ public partial class MainWindowViewModel : ViewModelBase
         return null;
     }
 
-    private TagGroup? FindParentGroupRecursive(TagGroup group, Tag tag)
+    private static TagGroup? FindParentGroupRecursive(TagGroup group, Tag tag)
     {
-        if (group.Tags.Contains(tag))
-            return group;
-
-        foreach (var subGroup in group.SubGroups)
+        if (group.Tags.Contains(tag)) return group;
+        foreach (var sub in group.SubGroups)
         {
-            var parent = FindParentGroupRecursive(subGroup, tag);
+            var parent = FindParentGroupRecursive(sub, tag);
             if (parent != null) return parent;
         }
-
         return null;
     }
 }

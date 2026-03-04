@@ -1,112 +1,60 @@
-﻿using Avalonia.Controls;
-using Prosologic.Studio.Views.Dialogs;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
+using System.Windows;
 
-namespace Prosologic.Studio.Services
+namespace Prosologic.Studio.Services;
+
+/// <summary>
+/// WPF replacement for the Avalonia MessageBoxService.
+/// Covers every method called by MainWindowViewModel:
+///   ShowAsync, ShowErrorAsync, ShowWarningAsync, ConfirmAsync, ShowInputAsync.
+/// </summary>
+public class MessageBoxService
 {
-    public class MessageBoxService
+    private readonly Window _owner;
+
+    public MessageBoxService(Window owner)
     {
-        private readonly Window _parentWindow;
+        _owner = owner;
+    }
 
-        public MessageBoxService(Window parentWindow)
+    public Task ShowAsync(string title, string message)
+    {
+        System.Windows.MessageBox.Show(_owner, message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+        return Task.CompletedTask;
+    }
+
+    public Task ShowErrorAsync(string title, string message)
+    {
+        System.Windows.MessageBox.Show(_owner, message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+        return Task.CompletedTask;
+    }
+
+    public Task ShowWarningAsync(string title, string message)
+    {
+        System.Windows.MessageBox.Show(_owner, message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> ConfirmAsync(string title, string message)
+    {
+        var result = System.Windows.MessageBox.Show(_owner, message, title,
+            MessageBoxButton.YesNo, MessageBoxImage.Question);
+        return Task.FromResult(result == MessageBoxResult.Yes);
+    }
+
+    /// <summary>
+    /// Shows a simple text-input dialog.
+    /// Returns the entered text, or null/empty if the user cancelled.
+    /// Uses the InputDialog view in Views/Dialogs — see InputDialog.xaml.
+    /// </summary>
+    public Task<string?> ShowInputAsync(string title, string prompt, string placeholder, string defaultValue)
+    {
+        var dialog = new Views.Dialogs.InputDialog(title, prompt, placeholder, defaultValue)
         {
-            _parentWindow = parentWindow;
-        }
+            Owner = _owner
+        };
 
-        public async Task<bool> ConfirmAsync(string title, string message)
-        {
-            var dialog = MessageDialogBuilder.Create(
-                title,
-                message,
-                MessageDialogType.Question,
-                MessageDialogButtons.YesNo
-            );
-
-            var result = await dialog.ShowDialog<MessageDialogResult>(_parentWindow);
-            return result == MessageDialogResult.Primary; // Primary = Yes
-        }
-
-        public async Task<string?> ShowInputAsync(string title, string prompt, string placeholder = "", string defaultValue = "")
-        {
-            var dialog = new InputDialog
-            {
-                DialogTitle = title,
-                Prompt = prompt,
-                Placeholder = placeholder,
-                InputValue = defaultValue
-            };
-
-            return await dialog.ShowDialog<string?>(_parentWindow);
-        }
-
-        public async Task ShowErrorAsync(string title, string message)
-        {
-            var dialog = MessageDialogBuilder.Create(
-                title,
-                message,
-                MessageDialogType.Error,
-                MessageDialogButtons.OK
-            );
-
-            await dialog.ShowDialog(_parentWindow);
-        }
-
-        public async Task ShowInfoAsync(string title, string message)
-        {
-            var dialog = MessageDialogBuilder.Create(
-                title,
-                message,
-                MessageDialogType.Information,
-                MessageDialogButtons.OK
-            );
-
-            await dialog.ShowDialog(_parentWindow);
-        }
-
-        public async Task ShowWarningAsync(string title, string message)
-        {
-            var dialog = MessageDialogBuilder.Create(
-                title,
-                message,
-                MessageDialogType.Warning,
-                MessageDialogButtons.OK
-            );
-
-            await dialog.ShowDialog(_parentWindow);
-        }
-
-        public async Task ShowSuccessAsync(string title, string message)
-        {
-            var dialog = MessageDialogBuilder.Create(
-                title,
-                message,
-                MessageDialogType.Success,
-                MessageDialogButtons.OK
-            );
-
-            await dialog.ShowDialog(_parentWindow);
-        }
-
-        public async Task<MessageDialogResult> ConfirmWithCancelAsync(string title, string message)
-        {
-            var dialog = MessageDialogBuilder.Create(
-                title,
-                message,
-                MessageDialogType.Question,
-                MessageDialogButtons.YesNoCancel
-            );
-
-            return await dialog.ShowDialog<MessageDialogResult>(_parentWindow);
-        }
-
-        public async Task<MessageDialogResult> ShowCustomAsync(
-            string title,
-            string message,
-            MessageDialogType type,
-            MessageDialogButtons buttons)
-        {
-            var dialog = MessageDialogBuilder.Create(title, message, type, buttons);
-            return await dialog.ShowDialog<MessageDialogResult>(_parentWindow);
-        }
+        bool? result = dialog.ShowDialog();
+        return Task.FromResult(result == true ? dialog.InputValue : (string?)null);
     }
 }
