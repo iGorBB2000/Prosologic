@@ -32,6 +32,7 @@ public partial class MainWindowViewModel : ViewModelBase
             // Replaces: WhenAnyValue(x => x.CurrentProject, x => x.HasUnsavedChanges).Subscribe(...)
             // We just notify the derived properties manually here instead.
             OnPropertyChanged(nameof(WindowTitle));
+            OnPropertyChanged(nameof(DisplayTitle));
             OnPropertyChanged(nameof(IsProjectOpen));
             SaveProjectCommand.NotifyCanExecuteChanged();
             SaveAsProjectCommand.NotifyCanExecuteChanged();
@@ -62,6 +63,7 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             SetProperty(ref _hasUnsavedChanges, value);
             OnPropertyChanged(nameof(WindowTitle));
+            OnPropertyChanged(nameof(DisplayTitle));
         }
     }
 
@@ -81,6 +83,10 @@ public partial class MainWindowViewModel : ViewModelBase
             return title;
         }
     }
+
+    /// <summary>Just the project name for the title bar centre display.
+    /// Fires whenever WindowTitle fires so bindings update on save.</summary>
+    public string DisplayTitle => CurrentProject?.ProjectName ?? "No project";
 
     public bool IsProjectOpen => CurrentProject != null;
 

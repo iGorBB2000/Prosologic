@@ -2,155 +2,341 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-        xmlns:vm="clr-namespace:Prosologic.Studio.ViewModels"
         xmlns:views="clr-namespace:Prosologic.Studio.Views"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="{Binding WindowTitle}"
-        Width="1200" Height="800"
-        Background="#1E1E1E"
-        ExtendsContentIntoTitleBar="True"
+        Width="1420" Height="880" MinWidth="960" MinHeight="640"
+        Background="{StaticResource BgCanvasBrush}"
         WindowStartupLocation="CenterScreen">
 
-    <ui:FluentWindow.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-    </ui:FluentWindow.Resources>
+    <!-- WindowChrome is applied in code-behind after InitializeComponent
+         so it runs AFTER FluentWindow.SetWindowChrome() and wins. -->
+
+    <Window.InputBindings>
+        <KeyBinding Key="N" Modifiers="Ctrl"       Command="{Binding NewProjectCommand}"/>
+        <KeyBinding Key="O" Modifiers="Ctrl"       Command="{Binding OpenProjectCommand}"/>
+        <KeyBinding Key="S" Modifiers="Ctrl"       Command="{Binding SaveProjectCommand}"/>
+        <KeyBinding Key="S" Modifiers="Ctrl+Shift" Command="{Binding SaveAsProjectCommand}"/>
+        <KeyBinding Key="G" Modifiers="Ctrl+Shift" Command="{Binding ProjectExplorer.AddTagGroupCommand}"/>
+        <KeyBinding Key="T" Modifiers="Ctrl+Shift" Command="{Binding ProjectExplorer.AddTagCommand}"/>
+    </Window.InputBindings>
 
     <DockPanel>
 
-        <!-- Title Bar -->
-        <ui:TitleBar DockPanel.Dock="Top"
-                     Title="{Binding WindowTitle}"
-                     Background="#2D2D30">
-        </ui:TitleBar>
+        <!-- ════════════════════════════════════════════════
+             TITLE BAR — fully custom, 48px tall
+             Three columns:
+               [*]  left  — menu (left-aligned)
+               [*]  mid   — PROSOLOGIC + project name (centred)
+               [*]  right — min / max / close buttons (right-aligned)
 
-        <!-- Menu Bar -->
-        <Menu DockPanel.Dock="Top" Background="#2D2D30">
-            <MenuItem Header="_File" Foreground="White">
-                <MenuItem Header="_New Project"
-                          Command="{Binding NewProjectCommand}"
-                          InputGestureText="Ctrl+N"/>
-                <MenuItem Header="_Open Project"
-                          Command="{Binding OpenProjectCommand}"
-                          InputGestureText="Ctrl+O"/>
-                <MenuItem Header="_Save"
-                          Command="{Binding SaveProjectCommand}"
-                          InputGestureText="Ctrl+S"/>
-                <Separator/>
-                <MenuItem Header="Save _As..."
-                          Command="{Binding SaveAsProjectCommand}"
-                          InputGestureText="Ctrl+Shift+S"/>
-                <Separator/>
-                <MenuItem Header="_Close Project"
-                          Command="{Binding CloseProjectCommand}"/>
-                <Separator/>
-                <MenuItem Header="E_xit"
-                          Command="{Binding ExitCommand}"/>
-            </MenuItem>
-            <MenuItem Header="_Edit" Foreground="White">
-                <MenuItem Header="Add Tag Group"
-                          IsEnabled="{Binding IsProjectOpen}"
-                          Command="{Binding ProjectExplorer.AddTagGroupCommand}"
-                          InputGestureText="Ctrl+Shift+G"/>
-                <MenuItem Header="Add Tag"
-                          IsEnabled="{Binding IsProjectOpen}"
-                          Command="{Binding ProjectExplorer.AddTagCommand}"
-                          InputGestureText="Ctrl+Shift+T"/>
-                <Separator/>
-                <MenuItem Header="Delete"
-                          IsEnabled="False"
-                          Command="{Binding ProjectExplorer.DeleteCommand}"
-                          InputGestureText="Delete"/>
-            </MenuItem>
-            <MenuItem Header="_View" Foreground="White">
-                <MenuItem Header="{Binding ShowContainersPanelText}"
-                          Command="{Binding ToggleContainersCommand}"/>
-            </MenuItem>
-            <MenuItem Header="_Deploy" Foreground="White">
-                <MenuItem Header="Deploy to Container"
-                          IsEnabled="{Binding IsProjectOpen}"/>
-                <MenuItem Header="Stop All Containers"/>
-            </MenuItem>
-            <MenuItem Header="_Help" Foreground="White">
-                <MenuItem Header="Documentation"/>
-                <MenuItem Header="About"/>
-            </MenuItem>
-        </Menu>
-
-        <!-- Status Bar -->
-        <Border DockPanel.Dock="Bottom"
-                Background="#007ACC"
-                Padding="12,6">
+             WindowChrome makes the whole bar draggable.
+             Buttons get IsHitTestVisible=True so clicks reach them.
+             Everything else is draggable by default.
+        ════════════════════════════════════════════════ -->
+        <Border DockPanel.Dock="Top"
+                Height="48"
+                Background="{StaticResource BgPanelBrush}"
+                BorderBrush="{StaticResource GridLineBrush}"
+                BorderThickness="0,0,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0"
-                           Text="{Binding StatusMessage}"
-                           Foreground="White"/>
-                <TextBlock Grid.Column="2"
-                           Text="{Binding CurrentProject.ProjectName, TargetNullValue='No project open'}"
-                           Foreground="White"
-                           FontWeight="Bold"/>
+
+                <!-- ── Left: menu ──────────────────────── -->
+                <Menu Grid.Column="0"
+                      Background="Transparent"
+                      VerticalAlignment="Center"
+                      HorizontalAlignment="Left"
+                      Margin="8,0,0,0"
+                      FontFamily="{StaticResource UiFont}"
+                      FontSize="{StaticResource FontSizeSm}"
+                      shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Menu.Resources>
+                        <Style TargetType="MenuItem">
+                            <Setter Property="Foreground" Value="{StaticResource TextLabelBrush}"/>
+                            <Setter Property="Padding"    Value="10,4"/>
+                        </Style>
+                    </Menu.Resources>
+                    <MenuItem Header="File">
+                        <MenuItem Header="New"      Command="{Binding NewProjectCommand}"     InputGestureText="Ctrl+N"/>
+                        <MenuItem Header="Open"     Command="{Binding OpenProjectCommand}"    InputGestureText="Ctrl+O"/>
+                        <MenuItem Header="Save"     Command="{Binding SaveProjectCommand}"    InputGestureText="Ctrl+S"/>
+                        <Separator/>
+                        <MenuItem Header="Save As…" Command="{Binding SaveAsProjectCommand}" InputGestureText="Ctrl+Shift+S"/>
+                        <Separator/>
+                        <MenuItem Header="Close"    Command="{Binding CloseProjectCommand}"/>
+                        <Separator/>
+                        <MenuItem Header="Exit"     Command="{Binding ExitCommand}"/>
+                    </MenuItem>
+                    <MenuItem Header="Edit">
+                        <MenuItem Header="Add Tag Group" IsEnabled="{Binding IsProjectOpen}"
+                                  Command="{Binding ProjectExplorer.AddTagGroupCommand}" InputGestureText="Ctrl+Shift+G"/>
+                        <MenuItem Header="Add Tag"       IsEnabled="{Binding IsProjectOpen}"
+                                  Command="{Binding ProjectExplorer.AddTagCommand}"      InputGestureText="Ctrl+Shift+T"/>
+                        <Separator/>
+                        <MenuItem Header="Delete"        IsEnabled="False"
+                                  Command="{Binding ProjectExplorer.DeleteCommand}"      InputGestureText="Del"/>
+                    </MenuItem>
+                    <MenuItem Header="View">
+                        <MenuItem Header="{Binding ShowContainersPanelText}" Command="{Binding ToggleContainersCommand}"/>
+                    </MenuItem>
+                    <MenuItem Header="Deploy">
+                        <MenuItem Header="Deploy to Container" IsEnabled="{Binding IsProjectOpen}"/>
+                        <MenuItem Header="Stop All"/>
+                    </MenuItem>
+                    <MenuItem Header="Help">
+                        <MenuItem Header="Documentation"/>
+                        <MenuItem Header="About"/>
+                    </MenuItem>
+                </Menu>
+
+                <!-- ── Centre: app label + project name ──
+                     IsHitTestVisible=False so mouse events pass
+                     through to the WindowChrome drag region. -->
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            IsHitTestVisible="False">
+                    <TextBlock Text="PROSOLOGIC"
+                               FontFamily="{StaticResource LabelFont}"
+                               FontSize="{StaticResource FontSizeXxs}"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource TextMutedBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"/>
+                    <Border Width="1" Height="12"
+                            Background="{StaticResource GridLineBrush}"
+                            VerticalAlignment="Center"
+                            Margin="0,0,10,0"/>
+                    <!-- Bind to DisplayTitle — a VM property that fires
+                         OnPropertyChanged whenever the project name changes. -->
+                    <TextBlock FontFamily="{StaticResource UiFont}"
+                               FontSize="{StaticResource FontSizeLg}"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text"       Value="{Binding DisplayTitle}"/>
+                                <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsProjectOpen}" Value="False">
+                                        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text=" *"
+                               FontFamily="{StaticResource UiFont}"
+                               FontSize="{StaticResource FontSizeLg}"
+                               Foreground="{StaticResource WarningBrush}"
+                               VerticalAlignment="Center"
+                               Visibility="{Binding HasUnsavedChanges, Converter={StaticResource BoolToVis}}"/>
+                </StackPanel>
+
+                <!-- ── Right: window chrome buttons ──────
+                     WindowChrome.IsHitTestVisibleInChrome=True
+                     is required or clicks are swallowed by
+                     the drag region.
+                     Path geometry uses 0-based coords sized to
+                     Stretch=None so they centre properly. -->
+                <StackPanel Grid.Column="2"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Stretch"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+
+                    <!-- Minimise -->
+                    <Button Width="46" Height="48"
+                            BorderThickness="0"
+                            ToolTip="Minimise"
+                            Click="MinimizeButton_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bg" Background="Transparent">
+                                    <Path Data="M 0,0 L 10,0"
+                                          Stroke="{DynamicResource TextLabelBrush}"
+                                          StrokeThickness="1.2"
+                                          StrokeStartLineCap="Round"
+                                          StrokeEndLineCap="Round"
+                                          Width="10" Height="1"
+                                          Stretch="None"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background"
+                                                Value="{DynamicResource BgHoverBrush}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <!-- Maximize / Restore -->
+                    <Button Width="46" Height="48"
+                            BorderThickness="0"
+                            Click="MaximizeButton_Click">
+                        <Button.ToolTip>
+                            <ToolTip>
+                                <ToolTip.Style>
+                                    <Style TargetType="ToolTip">
+                                        <Setter Property="Content" Value="Maximize"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding PlacementTarget.Tag,
+                                                RelativeSource={RelativeSource Self}}"
+                                                Value="Maximized">
+                                                <Setter Property="Content" Value="Restore"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ToolTip.Style>
+                            </ToolTip>
+                        </Button.ToolTip>
+                        <!-- Tag mirrors WindowState so the ToolTip binding above can reach it -->
+                        <Button.Tag>
+                            <Binding Path="WindowState"
+                                     RelativeSource="{RelativeSource AncestorType=Window}"/>
+                        </Button.Tag>
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bg" Background="Transparent">
+                                    <Path x:Name="Icon"
+                                          Data="M 0,0 L 0,10 L 10,10 L 10,0 Z"
+                                          Stroke="{DynamicResource TextLabelBrush}"
+                                          StrokeThickness="1.5"
+                                          Width="10" Height="10"
+                                          Stretch="None"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background"
+                                                Value="{DynamicResource BgHoverBrush}"/>
+                                    </Trigger>
+                                    <!-- Restore icon: open-corner square (back) + solid square (front) -->
+                                    <DataTrigger Binding="{Binding WindowState,
+                                        RelativeSource={RelativeSource AncestorType=Window}}"
+                                        Value="Maximized">
+                                        <Setter TargetName="Icon" Property="Data"
+                                                Value="M 3,0 L 10,0 L 10,7 M 0,3 L 0,10 L 7,10 L 7,3 Z"/>
+                                    </DataTrigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <!-- Close -->
+                    <Button Width="46" Height="48"
+                            BorderThickness="0"
+                            ToolTip="Close"
+                            Click="CloseButton_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bg" Background="Transparent">
+                                    <Path Data="M 0,0 L 10,10 M 10,0 L 0,10"
+                                          Stroke="{DynamicResource TextLabelBrush}"
+                                          StrokeThickness="1.2"
+                                          StrokeStartLineCap="Round"
+                                          StrokeEndLineCap="Round"
+                                          Width="10" Height="10"
+                                          Stretch="None"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background"
+                                                Value="{DynamicResource DangerBrush}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+
             </Grid>
         </Border>
 
-        <!-- Main Content -->
+        <!-- ════════════════════════════════════════════════
+             STATUS BAR
+        ════════════════════════════════════════════════ -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{StaticResource BgInsetBrush}"
+                BorderBrush="{StaticResource GridLineBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="14,4">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse Width="4" Height="4" Fill="{StaticResource LiveBrush}" Margin="0,0,7,0"/>
+                    <TextBlock Text="{Binding StatusMessage}"
+                               FontFamily="{StaticResource LabelFont}"
+                               FontSize="{StaticResource FontSizeSm}"
+                               Foreground="{StaticResource TextLabelBrush}"/>
+                </StackPanel>
+                <TextBlock Grid.Column="1"
+                           Text="STUDIO  v1.0"
+                           FontFamily="{StaticResource LabelFont}"
+                           FontSize="{StaticResource FontSizeSm}"
+                           Foreground="{StaticResource TextLabelBrush}"
+                           VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- ════════════════════════════════════════════════
+             MAIN CONTENT
+        ════════════════════════════════════════════════ -->
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="1"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Main 2-Panel Layout -->
             <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="280" MinWidth="160"/>
-                    <ColumnDefinition Width="4"/>
+                    <ColumnDefinition Width="220" MinWidth="160"/>
+                    <ColumnDefinition Width="1"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Left: Project Explorer -->
                 <Border Grid.Column="0"
-                        Background="#252526"
-                        BorderBrush="#3E3E42"
+                        Background="{StaticResource BgCanvasBrush}"
+                        BorderBrush="{StaticResource GridLineBrush}"
                         BorderThickness="0,0,1,0">
                     <views:ProjectExplorerView DataContext="{Binding ProjectExplorer}"/>
                 </Border>
 
-                <!-- Splitter -->
-                <GridSplitter Grid.Column="1"
-                              Width="4"
-                              Background="#3E3E42"
-                              HorizontalAlignment="Stretch"
-                              VerticalAlignment="Stretch"/>
+                <GridSplitter Grid.Column="1" Style="{StaticResource SplitterStyle}"/>
 
-                <!-- Right: Properties Panel -->
-                <Border Grid.Column="2" Background="#1E1E1E">
+                <Border Grid.Column="2" Background="{StaticResource BgSurfaceBrush}">
                     <views:PropertiesPanelView DataContext="{Binding PropertiesPanel}"/>
                 </Border>
             </Grid>
 
-            <!-- Splitter for bottom panel -->
             <GridSplitter Grid.Row="1"
-                          Height="4"
-                          Background="#3E3E42"
-                          HorizontalAlignment="Stretch"
+                          Style="{StaticResource SplitterStyle}"
                           Visibility="{Binding ShowContainersPanel, Converter={StaticResource BoolToVis}}"/>
 
-            <!-- Bottom: Containers Panel -->
             <Border Grid.Row="2"
-                    Background="#252526"
-                    BorderBrush="#3E3E42"
-                    BorderThickness="0,1,0,0"
-                    Height="200"
+                    Background="{StaticResource BgCanvasBrush}"
+                    BorderBrush="{StaticResource GridLineBrush}"
+                    BorderThickness="0,1,0,0" Height="160"
                     Visibility="{Binding ShowContainersPanel, Converter={StaticResource BoolToVis}}">
                 <views:ContainerManagerView/>
             </Border>
-
         </Grid>
 
     </DockPanel>
-
 </ui:FluentWindow>

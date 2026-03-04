@@ -1,42 +1,27 @@
 ﻿<UserControl x:Class="Prosologic.Studio.Views.ContainerManagerView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-
-    <DockPanel>
-
-        <!-- Header -->
+    <DockPanel Background="{StaticResource BgCanvasBrush}">
         <Border DockPanel.Dock="Top"
-                Background="#2D2D30"
-                Padding="12,8"
-                BorderBrush="#3E3E42"
-                BorderThickness="0,0,0,1">
+                Background="{StaticResource BgCanvasBrush}"
+                BorderBrush="{StaticResource GridLineBrush}"
+                BorderThickness="0,0,0,1" Padding="16,6">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0"
-                           Text="CONTAINERS"
-                           Foreground="#CCCCCC"
-                           FontWeight="SemiBold"
-                           FontSize="12"/>
-                <TextBlock Grid.Column="2"
-                           Text="Hide"
-                           Foreground="#007ACC"
-                           FontSize="11"
-                           VerticalAlignment="Center"
-                           Cursor="Hand"/>
+                <TextBlock Grid.Column="0" Text="CONTAINERS" Style="{StaticResource PanelIdStyle}"/>
+                <!-- Live indicator: no containers = no green dot -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <TextBlock Text="IDLE"
+                               FontFamily="{StaticResource LabelFont}"
+                               FontSize="{StaticResource FontSizeXxs}"
+                               Foreground="{StaticResource TextMutedBrush}"/>
+                </StackPanel>
             </Grid>
         </Border>
-
-        <!-- Content -->
-        <Border Padding="12">
-            <TextBlock Text="No containers deployed yet"
-                       Foreground="#808080"
-                       FontStyle="Italic"/>
-        </Border>
-
+        <TextBlock Style="{StaticResource EmptyStateStyle}"
+                   Text="no containers deployed"/>
     </DockPanel>
-
 </UserControl>
